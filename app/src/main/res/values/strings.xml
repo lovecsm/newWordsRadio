@@ -1,0 +1,61 @@
+<resources >
+    <string name="app_name">听单词</string>
+    <string name="choose_a_part">选择一个Part：</string>
+    <string name="begin">播放</string>
+    <string name="pause">暂停</string>
+    <string name="previous">上一个</string>
+    <string name="next">下一个</string>
+    <string name="restart">重播</string>
+    <string name="hello">example</string>
+    <string name="world">n.例子，实例，模范</string>
+    <string name="read_chinese">朗读中文释义</string>
+    <string name="read_times">只读一遍</string>
+    <string name="reversed">倒序播放</string>
+    <string name="not_reversed">正序播放</string>
+    <string name="auto_restart">自动重播</string>
+    <string name="not_auto_restart">取消自动重播</string>
+    <string name="read_times_two">读两遍</string>
+    <string name="not_read_chinese">只朗读单词</string>
+    <string name="open_float_window">开启悬浮窗</string>
+    <string name="close_float_window">关闭悬浮窗</string>
+    <string name="loading">正在解压数据文件(不消耗流量)…</string>
+    <string name="init_complete">加载数据完成！</string>
+    <string name="init_failed">加载数据失败，请尝试清除应用数据释放空间后再试</string>
+    <!--TTS合成相关-->
+    <string name="app_id">5b9dcecc</string>
+    <string name="choose_voice">选择发音人</string>
+    <string-array name="voicer_cloud_entries">
+        <item>小琪—女青、普通话</item>
+        <item>小宇—男青、普通话</item>
+        <item>小研—女青、普通话</item>
+        <item>小燕—女青、普通话</item>
+        <item>小峰—男青、普通话</item>
+        <item>小梅—女青、粤语</item>
+        <item>小莉—女青、台湾普通话</item>
+        <item>小蓉—女青、四川话</item>
+        <item>小芸—女青、东北话</item>
+        <item>小坤—男青、河南话</item>
+        <item>小强—男青、湖南话</item>
+        <item>小莹—女青、陕西话</item>
+        <item>小新—男童、普通话</item>
+        <item>楠楠—女童、普通话</item>
+        <item>老孙—男老、普通话</item>
+    </string-array>
+    <string-array name="voicer_cloud_values">
+        <item>xiaoqi</item>
+        <item>xiaoyu</item>
+        <item>vixy</item>
+        <item>xiaoyan</item>
+        <item>vixf</item>
+        <item>xiaomei</item>
+        <item>xiaolin</item>
+        <item>xiaorong</item>
+        <item>xiaoqian</item>
+        <item>xiaokun</item>
+        <item>xiaoqiang</item>
+        <item>vixying</item>
+        <item>xiaoxin</item>
+        <item>nannan</item>
+        <item>vils</item>
+    </string-array>
+</resources>

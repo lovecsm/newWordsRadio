@@ -1,0 +1,32 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.word.radio.MainActivity">
+
+    <item
+        android:id="@+id/readChinese"
+        android:title="@string/read_chinese"
+        android:icon="@mipmap/chinese"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/readTimes"
+        android:title="@string/read_times"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/reversed"
+        android:title="@string/reversed"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/autoRestart"
+        android:title="@string/auto_restart"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/floatWindow"
+        android:title="@string/open_float_window"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/chooseVoice"
+        android:title="@string/choose_voice"
+        app:showAsAction="never" />
+</menu>
