@@ -38,7 +38,6 @@ import android.widget.Toast;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private Spinner spinner;
     private Button speechButton;
     private ProgressBar mProgressBarHorizontal;
-    private MenuItem menuItem, menuItem1, menuItem2, menuItem3, menuItem4, menuItem5;
+    private MenuItem menuItem, menuItem1, menuItem2, menuItem3, menuItem4;
     private boolean isExit, openFloatWindow;
     private FloatView mFloatView;
     private ProgressDialog progressDialog;
@@ -74,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     private String words;
     private Pattern p = Pattern.compile("\\d.*?\\t(.+?)：(.*)");  //匹配单词和解释
     private Matcher m;
-    private Map<String, Integer> wordsHashMap = new HashMap<>();
+    private Map<Integer, String> wordsHashMap = new HashMap<>();
     private int allWordNum = 0, targetLocation = 0;
 
     //朗读相关
@@ -87,7 +86,6 @@ public class MainActivity extends AppCompatActivity {
     //private File file;
     private boolean isPlaying;
     private String[] content; //[单词, 释义]
-    //final HashMap ttsOptions = new HashMap<>();
     private SharedPreferences sharedPreferences = null;
     private boolean flag, reversed, autoRestart, pause = true;
     private SharedPreferences.Editor editor = null;
@@ -142,7 +140,6 @@ public class MainActivity extends AppCompatActivity {
         menuItem2 = menu.findItem(R.id.reversed);   // 倒序播放
         menuItem3 = menu.findItem(R.id.autoRestart);// 自动重播
         menuItem4 = menu.findItem(R.id.floatWindow);// 悬浮窗开关
-        menuItem5 = menu.findItem(R.id.chooseVoice);// 选择发音人
         sharedPreferences = getSharedPreferences("read", Context.MODE_PRIVATE);
         editor = sharedPreferences.edit();      //获取编辑器
         flag = sharedPreferences.getBoolean("read", false);
@@ -445,7 +442,7 @@ public class MainActivity extends AppCompatActivity {
         int location = 0;
         while (m.find()) {
             //LogUtils.e("look", location + "");
-            wordsHashMap.put(m.group(1) + "|" + m.group(2), location++);
+            wordsHashMap.put(location++, m.group(1) + "|" + m.group(2));
         }
         allWordNum = location;  //将单词总数返回给allWordNum
     }
@@ -649,16 +646,14 @@ public class MainActivity extends AppCompatActivity {
      * @return
      */
     private String[] getTargetWord(int location) {
-        Object word = null, count;
-        Iterator iter = wordsHashMap.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry entry = (Map.Entry) iter.next();
-            word = entry.getKey();
-            count = entry.getValue();
-            if (Integer.parseInt(count.toString()) == location) break;
+
+        LogUtils.i("number is: ", location+"");
+        String word = (String)wordsHashMap.get(location);
+        if(word == null){
+            return new String[]{"null", "null"};
         }
-        final String mWord = word.toString().split("\\|")[0];
-        final String mChinese = word.toString().split("\\|")[1];
+        final String mWord = word.split("\\|")[0];
+        final String mChinese = word.split("\\|")[1];
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -683,16 +678,18 @@ public class MainActivity extends AppCompatActivity {
             isPlaying = true;
             speechButton.setText(R.string.pause);
         }
+        if(!pause)
+            speechButton.setText(R.string.pause);
         if (!reversed) {
-            mProgressBarHorizontal.setProgress((int) (targetLocation / 100.0 * 100) + 1);
+            mProgressBarHorizontal.setProgress((int) ((targetLocation + 1) / (float)(allWordNum+1) * 100) + 1);
         } else {
-            mProgressBarHorizontal.setProgress((int) ((100 - targetLocation) / 100.0 * 100) + 1);
+            mProgressBarHorizontal.setProgress((int) ((allWordNum + 1 - targetLocation) / (float)(allWordNum + 1) * 100) );
         }
         new Thread(new Runnable() {
             @Override
             public void run() {
                 if (!reversed) {
-                    if (targetLocation < allWordNum) {
+                    if (targetLocation >= 0 && targetLocation < allWordNum) {
                         content = getTargetWord(targetLocation++);
                         String wordName = content[0];
                         //LogUtils.e("content", wordName);
@@ -700,7 +697,7 @@ public class MainActivity extends AppCompatActivity {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    Toast.makeText(getApplicationContext(), "无法获取单词读音链接，请检查网络", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(getApplicationContext(), "获取单词出错", Toast.LENGTH_SHORT).show();
                                     speechButton.setText(R.string.begin);
                                 }
                             });
@@ -724,7 +721,7 @@ public class MainActivity extends AppCompatActivity {
                         });
                     }
                 } else {
-                    if (targetLocation >= 0) {
+                    if (targetLocation >= 0 && targetLocation <= allWordNum) {
                         content = getTargetWord(targetLocation--);
                         //LogUtils.e("content", content[0] + "\n" + content[1]);
                         String wordName = content[0];
@@ -841,6 +838,7 @@ public class MainActivity extends AppCompatActivity {
             targetLocation += 2;
         }
         if (targetLocation < 0) targetLocation = 0;
+        if (targetLocation >= allWordNum) targetLocation = allWordNum - 1;
         pause = false;
         playNextWord();
     }
@@ -851,7 +849,7 @@ public class MainActivity extends AppCompatActivity {
     public void next(View v) {
         if (mediaPlayer != null && mediaPlayer.isPlaying())
             pausePlay();
-        if (targetLocation > allWordNum) targetLocation = allWordNum;
+        if (targetLocation > allWordNum) targetLocation = allWordNum - 1;
         pause = false;
         playNextWord();
     }
@@ -864,7 +862,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void buttonFunction() {
-        pause = !pause;
+        if(pause) pause = false;
+        else pause = true;
         if (!reversed) {
             if (!isPlaying) { // 没有在播放
                 isPlaying = true;
@@ -896,7 +895,7 @@ public class MainActivity extends AppCompatActivity {
                     else
                         continuePlay();
                 } else {
-                    targetLocation = allWordNum;
+                    targetLocation = allWordNum - 1;
                     //LogUtils.e("restart", "重来");
                     pause = false;
                     playNextWord();
