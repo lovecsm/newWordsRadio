@@ -21,7 +21,6 @@ import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -53,6 +52,8 @@ import com.iflytek.cloud.SpeechEvent;
 import com.iflytek.cloud.SpeechSynthesizer;
 import com.iflytek.cloud.SynthesizerListener;
 import com.iflytek.sunflower.FlowerCollector;
+
+import com.word.radio.utils.LogUtils;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -429,7 +430,7 @@ public class MainActivity extends AppCompatActivity {
                 else
                     targetLocation = allWordNum - 1;
                 mProgressBarHorizontal.setProgress(0);
-                //Log.e("look", words);
+                //LogUtils.e("look", words);
                 allWordTextView.setText(words.replaceAll("\\t", ".   "));
             }
         });
@@ -443,7 +444,7 @@ public class MainActivity extends AppCompatActivity {
     private void initWordsHashMap() {
         int location = 0;
         while (m.find()) {
-            //Log.e("look", location + "");
+            //LogUtils.e("look", location + "");
             wordsHashMap.put(m.group(1) + "|" + m.group(2), location++);
         }
         allWordNum = location;  //将单词总数返回给allWordNum
@@ -543,16 +544,16 @@ public class MainActivity extends AppCompatActivity {
         public void onEvent(int eventType, int arg1, int arg2, Bundle obj) {
             // 以下代码用于获取与云端的会话id，当业务出错时将会话id提供给技术支持人员，可用于查询会话日志，定位出错原因
             // 若使用本地能力，会话id为null
-            Log.e(TAG, "TTS Demo onEvent >>>" + eventType);
+            LogUtils.e(TAG, "TTS Demo onEvent >>>" + eventType);
             if (SpeechEvent.EVENT_SESSION_ID == eventType) {
                 String sid = obj.getString(SpeechEvent.KEY_EVENT_SESSION_ID);
-                Log.d(TAG, "session id =" + sid);
+                LogUtils.d(TAG, "session id =" + sid);
             }
         }
     };
 
     private void showTip(final String str) {
-        Log.e("showTip", str);
+        LogUtils.e("showTip", str);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -628,6 +629,8 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("ok");
         intentFilter.addAction("restart");
+        intentFilter.addAction("next");
+        intentFilter.addAction("previous");
         myBroadcastReceiver = new MyBroadcastReceiver();
         registerReceiver(myBroadcastReceiver, intentFilter);
 
@@ -692,7 +695,7 @@ public class MainActivity extends AppCompatActivity {
                     if (targetLocation < allWordNum) {
                         content = getTargetWord(targetLocation++);
                         String wordName = content[0];
-                        //Log.e("content", wordName);
+                        //LogUtils.e("content", wordName);
                         if (wordName.equals("null")) {
                             runOnUiThread(new Runnable() {
                                 @Override
@@ -702,7 +705,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             });
                         } else {
-                            //Log.e("restart", pause + ":pause");
+                            //LogUtils.e("restart", pause + ":pause");
                             if (!pause) play(wordName);
                         }
                     } else {
@@ -723,7 +726,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     if (targetLocation >= 0) {
                         content = getTargetWord(targetLocation--);
-                        //Log.e("content", content[0] + "\n" + content[1]);
+                        //LogUtils.e("content", content[0] + "\n" + content[1]);
                         String wordName = content[0];
                         if (!pause) play(wordName);
                     } else {
@@ -759,7 +762,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             if (mediaPlayer == null)
                 mediaPlayer = new MediaPlayer();
-            //Log.e("word", word);
+            //LogUtils.e("word", word);
             tempFile = new File(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
             fis = new FileInputStream(tempFile);
             mediaPlayer.setDataSource(fis.getFD());
@@ -792,7 +795,7 @@ public class MainActivity extends AppCompatActivity {
             });
         } catch (Exception e) {
             e.printStackTrace();
-            //Log.e("player", "播放失败:" + word);
+            //LogUtils.e("player", "播放失败:" + word);
         }
 
     }
@@ -873,7 +876,7 @@ public class MainActivity extends AppCompatActivity {
                         continuePlay();
                 } else {
                     targetLocation = 0;
-                    //Log.e("restart", "重来");
+                    //LogUtils.e("restart", "重来");
                     pause = false;
                     playNextWord();
                 }
@@ -894,7 +897,7 @@ public class MainActivity extends AppCompatActivity {
                         continuePlay();
                 } else {
                     targetLocation = allWordNum;
-                    //Log.e("restart", "重来");
+                    //LogUtils.e("restart", "重来");
                     pause = false;
                     playNextWord();
                 }
@@ -992,7 +995,7 @@ public class MainActivity extends AppCompatActivity {
             //启动Activity让用户授权
             Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
             startActivity(intent);
-            Log.e("permission", "权限请求");
+            LogUtils.e("permission", "权限请求");
         }
         mFloatView = new FloatView(MainActivity.this);
         mFloatView.setLayout(R.layout.float_static);
@@ -1010,7 +1013,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        Log.e("permission", "权限请求:" + requestCode);
+        LogUtils.e("permission", "权限请求:" + requestCode);
     }
 
     /**********************************线控相关******************************************/
@@ -1072,13 +1075,13 @@ public class MainActivity extends AppCompatActivity {
                 // phone headset plugged
                 if (intent.getIntExtra("state", 0) == 1) {
                     // do something
-//					Log.d(TAG, "耳机检测：插入");
+//					LogUtils.d(TAG, "耳机检测：插入");
 //					Toast.makeText(context, "耳机检测：插入", Toast.LENGTH_SHORT) .show();
                     mAudioManager.registerMediaButtonEventReceiver(mComponentName);
                     // phone head unplugged
                 } else {
                     // do something
-//					Log.d(TAG, "耳机检测：没有插入");
+//					LogUtils.d(TAG, "耳机检测：没有插入");
 //					Toast.makeText(context, "耳机检测：没有插入", Toast.LENGTH_SHORT).show();
                     if (isPlaying) {
                         buttonFunction();
@@ -1093,6 +1096,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            LogUtils.i("MediaButtonReceiverMain", action);
             if (action == null) return;
             if (action.equals("ok")) {
                 if (targetLocation < allWordNum - 1 && targetLocation > 0) {
@@ -1111,7 +1115,7 @@ public class MainActivity extends AppCompatActivity {
                     buttonFunction();
                 }
             } else if (action.equals("restart")) {
-                //Log.e("reajfkaej","重启");
+                LogUtils.i("MediaButtonReceiverMain","重启");
                 isPlaying = false;
                 if (!reversed) {
                     targetLocation = 0;
@@ -1124,6 +1128,12 @@ public class MainActivity extends AppCompatActivity {
                     pause = true;
                     buttonFunction();
                 }
+            } else if (action.equals("previous")) {
+                LogUtils.i("MediaButtonReceiverMain", "previousMain");
+                previous(getCurrentFocus());
+            } else if (action.equals("next")) {
+                next(getCurrentFocus());
+                LogUtils.i("MediaButtonReceiverMain", "NextMain");
             }
         }
     }

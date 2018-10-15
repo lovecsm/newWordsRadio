@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.view.KeyEvent;
 
+import com.word.radio.utils.LogUtils;
+
 public class MediaButtonReceiver extends BroadcastReceiver {
 
     private static String TAG = "MediaButtonReceiver";
@@ -15,8 +17,7 @@ public class MediaButtonReceiver extends BroadcastReceiver {
         // 获得Action
         String intentAction = intent.getAction();
         // 获得KeyEvent对象
-        KeyEvent keyEvent = intent
-                .getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+        KeyEvent keyEvent = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
         // 按下 / 松开 按钮
         int keyAction = keyEvent.getAction();
 
@@ -24,7 +25,7 @@ public class MediaButtonReceiver extends BroadcastReceiver {
                 && (KeyEvent.ACTION_DOWN == keyAction)) {
             // 获得按键字节码
             int keyCode = keyEvent.getKeyCode();
-            //Log.i("keycode", String.valueOf(keyCode));
+            //LogUtils.i("keycode", String.valueOf(keyCode));
             // 获得事件的时间
 //            downtime = keyEvent.getDownTime();
             // 获取按键码 keyCode
@@ -35,28 +36,31 @@ public class MediaButtonReceiver extends BroadcastReceiver {
 //			}
             // 说明：当我们按下MEDIA_BUTTON中间按钮时，实际出发的是 KEYCODE_HEADSETHOOK 而不是
             // KEYCODE_MEDIA_PLAY_PAUSE
-//            if (KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE == keyCode) {
-//				sb.append("KEYCODE_MEDIA_PLAY_PAUSE");
-
-//            }
+            if (KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE == keyCode) {
+                Intent intent1 = new Intent("ok");
+                context.sendBroadcast(intent1);
+            }
             if (KeyEvent.KEYCODE_HEADSETHOOK == keyCode || 127 == keyCode || 126 == keyCode) {
                 Intent intent1 = new Intent("ok");
                 context.sendBroadcast(intent1);
             }
             if (KeyEvent.KEYCODE_MEDIA_PREVIOUS == keyCode) {
-//				sb.append("KEYCODE_MEDIA_PREVIOUS");
+                // todo:previous
+                LogUtils.i(TAG, "previous play");
+                Intent intent1 = new Intent("previous");
+                context.sendBroadcast(intent1);
+            }
+            if (KeyEvent.KEYCODE_MEDIA_NEXT == keyCode) {
+                // todo:next
+                LogUtils.i(TAG, "next play");
+                Intent intent1 = new Intent("next");
+                context.sendBroadcast(intent1);
             }
             if (KeyEvent.KEYCODE_MEDIA_STOP == keyCode) {
 //				sb.append("KEYCODE_MEDIA_STOP");
             }
-            // 输出点击的按键码
-//			Log.i(TAG, sb.toString());
-//			Toast.makeText(context, sb.toString(), Toast.LENGTH_SHORT).show();
         } else if (KeyEvent.ACTION_UP == keyAction) {
-            //Log.d("reajfkaej","down:"+String.valueOf(keyEvent.getDownTime()));
-            //Log.d("reajfkaej","up:"+String.valueOf(keyEvent.getEventTime()));
             if (keyEvent.getEventTime() - keyEvent.getDownTime() > 100) {
-                //Log.d("reajfkaej","restart-> distance:"+String.valueOf(keyEvent.getEventTime()-keyEvent.getDownTime()));
                 Intent intent1 = new Intent("restart");
                 context.sendBroadcast(intent1);
             }
