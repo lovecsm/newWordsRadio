@@ -16,6 +16,7 @@
         android:clickable="true"
         android:elevation="5dp"
         android:focusable="true"
+        android:onClick="repeatPlay"
         android:orientation="vertical">
 
         <ProgressBar

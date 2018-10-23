@@ -24,7 +24,7 @@
             </intent-filter>
         </activity>
         <receiver android:name=".MediaButtonReceiver">
-            <intent-filter android:priority="2147483647">
+            <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>

@@ -1,5 +1,6 @@
 package com.word.radio.newradio;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -73,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
     private String words;
     private Pattern p = Pattern.compile("\\d.*?\\t(.+?)：(.*)");  //匹配单词和解释
     private Matcher m;
+    private int selectedNum = 0;
+    @SuppressLint("UseSparseArrays")
     private Map<Integer, String> wordsHashMap = new HashMap<>();
     private int allWordNum = 0, targetLocation = 0;
 
@@ -80,15 +83,15 @@ public class MainActivity extends AppCompatActivity {
     private File tempFile;
     private FileInputStream fis;
     private MediaPlayer mediaPlayer;
-    int times = 2; //控制单词播放次数
-    int count = 0; //控制单词播放次数
+    int times = 2; //单词播放总次数
+    int count = 0; //控制单词当前已经播放次数
     private boolean needPlayChinese = true;
-    //private File file;
     private boolean isPlaying;
     private String[] content; //[单词, 释义]
     private SharedPreferences sharedPreferences = null;
     private boolean flag, reversed, autoRestart, pause = true;
     private SharedPreferences.Editor editor = null;
+    private boolean repeat;
     // 讯飞TTS
     private static String TAG = MainActivity.class.getSimpleName();
     // 语音合成对象
@@ -103,7 +106,6 @@ public class MainActivity extends AppCompatActivity {
     final private String VOICE_VOL = "85";  // 音量
     final private String VOICE_TONE = "50"; // 音调
     final private String VOICE_SPEED = "50";// 语速
-    private Toast mToast;
 
     //线控相关
     private AudioManager mAudioManager;
@@ -247,6 +249,8 @@ public class MainActivity extends AppCompatActivity {
                     showTip(getString(R.string.init_complete));
                 } catch (Exception e) {
                     e.printStackTrace();
+                    File file = new File(getExternalCacheDir() + "/wordAudios/");
+                    ReadFile.deleteAllFilesOfDir(file);
                     showTip(getString(R.string.init_failed));
                 }
             }
@@ -447,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
         allWordNum = location;  //将单词总数返回给allWordNum
     }
 
-    private int selectedNum = 0;
+
 
     /**
      * 发音人选择。
@@ -634,19 +638,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void playByTts() {
-        speak(content[1].replaceAll("[a-zA-z\\&]+\\.", ""));
+        speak(content[1].replaceAll("[a-zA-z&]+\\.", ""));
     }
 
     /**
-     * 查找单词函数
-     * 参数：待查找的单词位置
-     * 返回值：单词的json字符串和单词释义组成的String数组
-     *
-     * @param location
-     * @return
+     * @param location 待查找的单词位置
+     * @return 单词和释义组成的数组
      */
     private String[] getTargetWord(int location) {
-
+        if (repeat && !reversed) {
+            location = --targetLocation;
+        } else if (repeat && reversed) {
+            location = ++targetLocation;
+        }
         LogUtils.i("number is: ", location+"");
         String word = (String)wordsHashMap.get(location);
         if(word == null){
@@ -824,6 +828,23 @@ public class MainActivity extends AppCompatActivity {
             }
             playNextWord();
         }
+    }
+
+    public void repeatPlay(View v) {
+        if(repeat && isPlaying && !reversed) {
+            targetLocation++;
+            showTip("顺序播放");
+        } else if (!repeat && isPlaying && !reversed) {
+            targetLocation--;
+            showTip("重复播放");
+        } else if (repeat && isPlaying && reversed) {
+            targetLocation--;
+            showTip("顺序播放");
+        } else if (!repeat && isPlaying && reversed) {
+            targetLocation++;
+            showTip("重复播放");
+        }
+        repeat = !repeat;
     }
 
     /**
