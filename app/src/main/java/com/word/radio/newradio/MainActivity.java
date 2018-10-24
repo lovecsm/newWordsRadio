@@ -126,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onWindowFocusChanged(boolean hasChanged) {
         super.onWindowFocusChanged(hasChanged);
-        // TODO: 复制MP3数据
+        // 复制MP3数据
         File file = new File(getExternalCacheDir() + "/wordAudios");
         if (!file.exists()) {
             initMp3();
@@ -646,9 +646,9 @@ public class MainActivity extends AppCompatActivity {
      * @return 单词和释义组成的数组
      */
     private String[] getTargetWord(int location) {
-        if (repeat && !reversed) {
+        if (repeat && !reversed && targetLocation > 0) {
             location = --targetLocation;
-        } else if (repeat && reversed) {
+        } else if (repeat && reversed && targetLocation < allWordNum) {
             location = ++targetLocation;
         }
         LogUtils.i("number is: ", location+"");
@@ -713,6 +713,7 @@ public class MainActivity extends AppCompatActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
+                                LogUtils.i("targetLocation", targetLocation + "");
                                 Toast.makeText(getApplicationContext(), "播放完毕", Toast.LENGTH_SHORT).show();
                                 isPlaying = false;
                                 pause = true;
@@ -831,16 +832,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void repeatPlay(View v) {
-        if(repeat && isPlaying && !reversed) {
+        if (repeat && !reversed) {
             targetLocation++;
             showTip("顺序播放");
-        } else if (!repeat && isPlaying && !reversed) {
+        } else if (!repeat && !reversed) {
             targetLocation--;
             showTip("重复播放");
-        } else if (repeat && isPlaying && reversed) {
+        } else if (repeat && reversed) {
             targetLocation--;
             showTip("顺序播放");
-        } else if (!repeat && isPlaying && reversed) {
+        } else if (!repeat && reversed) {
             targetLocation++;
             showTip("重复播放");
         }
@@ -883,14 +884,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void buttonFunction() {
+        if (!reversed && !isPlaying && pause && targetLocation > 1) {
+            LogUtils.i("targetLocation", targetLocation + "哈哈哈");
+            targetLocation++;
+        } else if (reversed && !isPlaying && pause && targetLocation < allWordNum - 1) {
+            LogUtils.i("targetLocation", targetLocation + "呵呵哈哈哈");
+            targetLocation--;
+        }
         if(pause) pause = false;
         else pause = true;
         if (!reversed) {
             if (!isPlaying) { // 没有在播放
                 isPlaying = true;
                 speechButton.setText(R.string.pause);
-                if (targetLocation < allWordNum) {
-                    if (targetLocation <= 0)
+                if (targetLocation < allWordNum && targetLocation >= 0) {
+                    if (targetLocation == 0)
                         playNextWord();
                     else
                         continuePlay();
@@ -910,7 +918,7 @@ public class MainActivity extends AppCompatActivity {
             if (!isPlaying) { // 没有在播放
                 isPlaying = !isPlaying;
                 speechButton.setText(R.string.pause);
-                if (targetLocation > 0) {
+                if (targetLocation > 0 && targetLocation < allWordNum) {
                     if (targetLocation >= allWordNum - 1)
                         playNextWord();
                     else
