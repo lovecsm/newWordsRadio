@@ -128,63 +128,6 @@ public class MainActivity extends AppCompatActivity {
     private ComponentName mComponentName;
     private MyBroadcastReceiver myBroadcastReceiver;
     private int savedSpinnerPos, savedWordPos;
-    /**
-     * 合成回调监听。
-     */
-    private SynthesizerListener mTtsListener = new SynthesizerListener() {
-
-        @Override
-        public void onSpeakBegin() {
-            //showTip("开始播放");
-        }
-
-        @Override
-        public void onSpeakPaused() {
-            //showTip("暂停播放");
-        }
-
-        @Override
-        public void onSpeakResumed() {
-            //showTip("继续播放");
-        }
-
-        @Override
-        public void onBufferProgress(int percent, int beginPos, int endPos,
-                                     String info) {
-            // 合成进度
-
-        }
-
-        @Override
-        public void onSpeakProgress(int percent, int beginPos, int endPos) {
-            // 播放进度
-
-        }
-
-        @Override
-        public void onCompleted(SpeechError error) {
-            if (error == null) {
-                // 播放完成监听
-                //showTip("缓存完成");
-                if (!pause)
-                    //playChinese();
-                    playNextWord();
-            } else {
-                showTip(error.getPlainDescription(true));
-            }
-        }
-
-        @Override
-        public void onEvent(int eventType, int arg1, int arg2, Bundle obj) {
-            // 以下代码用于获取与云端的会话id，当业务出错时将会话id提供给技术支持人员，可用于查询会话日志，定位出错原因
-            // 若使用本地能力，会话id为null
-            LogUtils.e(TAG, "TTS Demo onEvent >>>" + eventType);
-            if (SpeechEvent.EVENT_SESSION_ID == eventType) {
-                String sid = obj.getString(SpeechEvent.KEY_EVENT_SESSION_ID);
-                LogUtils.d(TAG, "session id =" + sid);
-            }
-        }
-    };
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -250,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
             // action with ID action_refresh was selected
             case R.id.readChinese:
                 flag = sharedPreferences.getBoolean("read", false);
-                if (flag == true) {
+                if (flag) {
                     editor.putBoolean("read", false);
                     needPlayChinese = true;
                     menuItem.setIcon(R.mipmap.chinese);
@@ -588,6 +531,64 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    /**
+     * 合成回调监听。
+     */
+    private SynthesizerListener mTtsListener = new SynthesizerListener() {
+
+        @Override
+        public void onSpeakBegin() {
+            //showTip("开始播放");
+        }
+
+        @Override
+        public void onSpeakPaused() {
+            //showTip("暂停播放");
+        }
+
+        @Override
+        public void onSpeakResumed() {
+            //showTip("继续播放");
+        }
+
+        @Override
+        public void onBufferProgress(int percent, int beginPos, int endPos,
+                                     String info) {
+            // 合成进度
+
+        }
+
+        @Override
+        public void onSpeakProgress(int percent, int beginPos, int endPos) {
+            // 播放进度
+
+        }
+
+        @Override
+        public void onCompleted(SpeechError error) {
+            if (error == null) {
+                // 播放完成监听
+                //showTip("缓存完成");
+                if (!pause)
+                    //playChinese();
+                    playNextWord();
+            } else {
+                showTip(error.getPlainDescription(true));
+            }
+        }
+
+        @Override
+        public void onEvent(int eventType, int arg1, int arg2, Bundle obj) {
+            // 以下代码用于获取与云端的会话id，当业务出错时将会话id提供给技术支持人员，可用于查询会话日志，定位出错原因
+            // 若使用本地能力，会话id为null
+            LogUtils.e(TAG, "TTS Demo onEvent >>>" + eventType);
+            if (SpeechEvent.EVENT_SESSION_ID == eventType) {
+                String sid = obj.getString(SpeechEvent.KEY_EVENT_SESSION_ID);
+                LogUtils.d(TAG, "session id =" + sid);
+            }
+        }
+    };
+
     private void initSpinner() {
         // 数据源
         String[] array = {"part 1", "part 2", "part 3", "part 4", "part 5", "part 6", "part 7", "part 8", "part 9", "part 10", "part 11",
@@ -844,13 +845,15 @@ public class MainActivity extends AppCompatActivity {
         }
         final String mWord = word.split("\\|")[0];
         final String mChinese = word.split("\\|")[1];
+
         runOnUiThread(new Runnable() {
+            @SuppressLint("SetTextI18n")
             @Override
             public void run() {
                 currentWord.setText(mWord);
                 currentChinese.setText(mChinese);
                 if (openFloatWindow) {
-                    FloatView.textView.setText(mWord + "  " + mChinese);
+                    mFloatView.textView.setText(mWord + "  " + mChinese);
                 }
             }
         });
@@ -1028,10 +1031,10 @@ public class MainActivity extends AppCompatActivity {
         } else if (!repeat && !reversed) {
             targetLocation--;
             showTip("重复播放");
-        } else if (repeat && reversed) {
+        } else if (repeat) {
             targetLocation--;
             showTip("顺序播放");
-        } else if (!repeat && reversed) {
+        } else {
             targetLocation++;
             showTip("重复播放");
         }
@@ -1075,10 +1078,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void buttonFunction() {
         if (!reversed && !isPlaying && pause && targetLocation > 1) {
-            LogUtils.i("targetLocation", targetLocation + "哈哈哈");
+            LogUtils.i("targetLocation", targetLocation + "：目标单词索引");
             targetLocation++;
         } else if (reversed && !isPlaying && pause && targetLocation < allWordNum - 1) {
-            LogUtils.i("targetLocation", targetLocation + "呵呵哈哈哈");
+            LogUtils.i("targetLocation", targetLocation + "：目标单词索引");
             targetLocation--;
         }
         pause = !pause;
@@ -1133,9 +1136,9 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 双击返回键退出
      *
-     * @param keyCode
-     * @param event
-     * @return
+     * @param keyCode 按键码
+     * @param event 事件
+     * @return 布尔类型
      */
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -1171,30 +1174,30 @@ public class MainActivity extends AppCompatActivity {
      */
     public void showNotification(Context context, String title, String msg) {
         notification = new NotificationCompat.Builder(context)
-                /**设置通知左边的大图标**/
+                /*设置通知左边的大图标*/
                 .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.icon))
-                /**设置通知右边的小图标**/
+                /*设置通知右边的小图标*/
                 .setSmallIcon(R.mipmap.icon)
-                /**通知首次出现在通知栏，带上升动画效果的**/
+                /*通知首次出现在通知栏，带上升动画效果的*/
                 .setTicker("通知来了")
-                /**设置通知的标题**/
+                /*设置通知的标题*/
                 .setContentTitle(title)
-                /**设置通知的内容**/
+                /*设置通知的内容*/
                 .setContentText(msg)
-                /**通知产生的时间，会在通知信息里显示**/
+                /*通知产生的时间，会在通知信息里显示*/
                 .setWhen(System.currentTimeMillis())
-                /**设置该通知优先级**/
+                /*设置该通知优先级**/
                 .setPriority(Notification.PRIORITY_HIGH)
-                /**设置这个标志当用户单击面板就可以让通知将自动取消**/
+                /*设置这个标志当用户单击面板就可以让通知将自动取消*/
                 .setAutoCancel(true)
-                /**设置他为一个正在进行的通知。他们通常是用来表示一个后台任务,用户积极参与(如播放音乐)或以某种方式正在等待,因此占用设备(如一个文件下载,同步操作,主动网络连接)**/
+                /*设置他为一个正在进行的通知。他们通常是用来表示一个后台任务,用户积极参与(如播放音乐)或以某种方式正在等待,因此占用设备(如一个文件下载,同步操作,主动网络连接)*/
                 .setOngoing(true)
-                /**向通知添加声音、闪灯和振动效果的最简单、最一致的方式是使用当前的用户默认设置，使用defaults属性，可以组合：**/
+                /*向通知添加声音、闪灯和振动效果的最简单、最一致的方式是使用当前的用户默认设置，使用defaults属性，可以组合：*/
                 //.setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND)
                 .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
                 .build();
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
-        /**发起通知**/
+        /*发起通知*/
         notificationManager.notify(0, notification);
     }
 
@@ -1213,9 +1216,11 @@ public class MainActivity extends AppCompatActivity {
     private void initFloatWindow() {
         if (!checkPermission()) {
             //启动Activity让用户授权
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
-            startActivity(intent);
-            LogUtils.e("permission", "权限请求");
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+            }
+            LogUtils.i("permission", "权限请求");
         }
         mFloatView = new FloatView(MainActivity.this);
         mFloatView.setLayout(R.layout.float_static);
@@ -1273,7 +1278,6 @@ public class MainActivity extends AppCompatActivity {
         /*if (textToSpeech != null)
             textToSpeech.shutdown();*/
         if (mediaPlayer != null) {
-            //mediaPlayer.stop();
             mediaPlayer.release();
         }
         if (mFloatView != null) {
@@ -1282,8 +1286,8 @@ public class MainActivity extends AppCompatActivity {
             mFloatView = null;
         }
         notification = null;
-        FloatView.textView = null;
-        mAudioManager.unregisterMediaButtonEventReceiver(mComponentName);
+        if (mAudioManager != null)
+            mAudioManager.unregisterMediaButtonEventReceiver(mComponentName);
         unregisterReceiver(headSetReceiver);
         unregisterReceiver(myBroadcastReceiver);
         mAudioManager = null;
@@ -1300,7 +1304,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action.equals(Intent.ACTION_HEADSET_PLUG)) {
+            if (action != null && action.equals(Intent.ACTION_HEADSET_PLUG)) {
                 // phone headset plugged
                 if (intent.getIntExtra("state", 0) == 1) {
                     // do something
@@ -1327,42 +1331,45 @@ public class MainActivity extends AppCompatActivity {
             String action = intent.getAction();
             LogUtils.i("MediaButtonReceiverMain", action);
             if (action == null) return;
-            if (action.equals("ok")) {
-                if (targetLocation < allWordNum - 1 && targetLocation > 0) {
-                    buttonFunction();
-                } else if (!reversed && targetLocation >= allWordNum - 1) {
-                    targetLocation = 0;
+            switch (action) {
+                case "ok":
+                    if (targetLocation < allWordNum - 1 && targetLocation > 0) {
+                        buttonFunction();
+                    } else if (!reversed && targetLocation >= allWordNum - 1) {
+                        targetLocation = 0;
+                        isPlaying = false;
+                        pause = true;
+                        buttonFunction();
+                    } else if (reversed && targetLocation <= 0) {
+                        targetLocation = allWordNum - 1;
+                        isPlaying = false;
+                        pause = true;
+                        buttonFunction();
+                    } else {
+                        buttonFunction();
+                    }
+                    break;
+                case "restart":
+                    LogUtils.i("MediaButtonReceiverMain", "重启");
                     isPlaying = false;
-                    pause = true;
-                    buttonFunction();
-                } else if (reversed && targetLocation <= 0) {
-                    targetLocation = allWordNum - 1;
-                    isPlaying = false;
-                    pause = true;
-                    buttonFunction();
-                } else {
-                    buttonFunction();
-                }
-            } else if (action.equals("restart")) {
-                LogUtils.i("MediaButtonReceiverMain","重启");
-                isPlaying = false;
-                if (!reversed) {
-                    targetLocation = 0;
-                    isPlaying = false;
-                    pause = true;
-                    buttonFunction();
-                } else {
-                    targetLocation = allWordNum - 1;
-                    isPlaying = false;
-                    pause = true;
-                    buttonFunction();
-                }
-            } else if (action.equals("previous")) {
-                LogUtils.i("MediaButtonReceiverMain", "previousMain");
-                previous(getCurrentFocus());
-            } else if (action.equals("next")) {
-                next(getCurrentFocus());
-                LogUtils.i("MediaButtonReceiverMain", "NextMain");
+                    if (!reversed) {
+                        targetLocation = 0;
+                        pause = true;
+                        buttonFunction();
+                    } else {
+                        targetLocation = allWordNum - 1;
+                        pause = true;
+                        buttonFunction();
+                    }
+                    break;
+                case "previous":
+                    LogUtils.i("MediaButtonReceiverMain", "previousMain");
+                    previous(getCurrentFocus());
+                    break;
+                case "next":
+                    next(getCurrentFocus());
+                    LogUtils.i("MediaButtonReceiverMain", "NextMain");
+                    break;
             }
         }
     }

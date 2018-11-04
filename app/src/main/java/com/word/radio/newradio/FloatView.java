@@ -1,5 +1,6 @@
 package com.word.radio.newradio;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -11,8 +12,6 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-//import android.icu.text.SimpleDateFormat;
-
 
 public class FloatView extends View {
     private final static String TAG = "FloatView";
@@ -26,7 +25,7 @@ public class FloatView extends View {
     private float mScreenX;
     private float mScreenY;
     private boolean bShow = false;
-    public static TextView textView;
+    public TextView textView;
 
     public FloatView(Context context) {
         super(context);
@@ -38,6 +37,7 @@ public class FloatView extends View {
     }
 
 
+    @SuppressLint("ClickableViewAccessibility")
     public void setLayout(int layout_id) {
 
         mContentView = (LinearLayout) LayoutInflater.from(mContext).inflate(layout_id, null);
@@ -70,11 +70,12 @@ public class FloatView extends View {
                             updateViewPosition();
                         break;
                     case MotionEvent.ACTION_UP:
-                        if (abs(event.getX() - mRelativeX) > 5 || abs(event.getY() - mRelativeY) > 5)
-                            updateViewPosition();
+                        if (abs(event.getX() - mRelativeX) > 1 || abs(event.getY() - mRelativeY) > 1)
+                            ;
+                            //updateViewPosition();
                         else {
-                            Intent intent1 = new Intent("ok");
-                            mContext.sendBroadcast(intent1);
+                            Intent it = new Intent("ok");
+                            mContext.sendBroadcast(it);
                         }
                         mRelativeX = mRelativeY = 0;
                         break;
@@ -85,7 +86,7 @@ public class FloatView extends View {
     }
 
     private void updateViewPosition() {
-        if (mScreenX - mRelativeX > 10 || mScreenY - mRelativeY > 10) {
+        if (mScreenX - mRelativeX > 5 || mScreenY - mRelativeY > 5) {
             wmParams.x = (int) (mScreenX - mRelativeX);
             wmParams.y = (int) (mScreenY - mRelativeY - 60);
             wm.updateViewLayout(mContentView, wmParams);
@@ -98,7 +99,7 @@ public class FloatView extends View {
             wmParams.format = PixelFormat.RGBA_8888;
             wmParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
             wmParams.alpha = 0.6f;
-            wmParams.gravity = Gravity.LEFT | Gravity.TOP;
+            wmParams.gravity = Gravity.START | Gravity.TOP;
             wmParams.x = getWidth() / 3;
             wmParams.y = 0;
             wmParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
