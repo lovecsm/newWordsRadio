@@ -140,6 +140,29 @@ public class MainActivity extends AppCompatActivity {
         initBroadCast();//初始化线控广播接收器
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        saveData();
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        restoreData();
+        applyData();
+    }
+
+    private void saveData() {
+        SharedPreferences sp = getSharedPreferences("saved_data", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putInt("savedSpinnerPos", savedSpinnerPos);
+        editor.putInt("savedWordPos", targetLocation);
+        editor.putBoolean("repeat", repeat);
+        editor.putBoolean("reversed", reversed);
+        editor.putBoolean("autoRestart", autoRestart);
+        editor.apply();
+    }
     private void restoreData() {
         SharedPreferences sp = getSharedPreferences("saved_data", Context.MODE_PRIVATE);
         savedSpinnerPos = sp.getInt("savedSpinnerPos", 0);
@@ -954,6 +977,8 @@ public class MainActivity extends AppCompatActivity {
         if (mTts.isSpeaking()) {
             mTts.stopSpeaking();
         }
+        if (!repeat)
+            saveData();
         try {
             if (mediaPlayer == null)
                 mediaPlayer = new MediaPlayer();
@@ -1020,6 +1045,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 targetLocation++;
             }
+        pause = false;
             playNextWord();
         //}
     }
@@ -1045,28 +1071,36 @@ public class MainActivity extends AppCompatActivity {
      * 切换到上一个单词
      */
     public void previous(View v) {
-        if (mediaPlayer != null && mediaPlayer.isPlaying())
-            pausePlay();
-        if (!reversed) {
-            targetLocation -= 2;
+        if (!repeat) {
+            if (mediaPlayer != null && mediaPlayer.isPlaying())
+                pausePlay();
+            if (!reversed) {
+                targetLocation -= 2;
+            } else {
+                targetLocation += 2;
+            }
+            if (targetLocation < 0) targetLocation = 0;
+            if (targetLocation >= allWordNum) targetLocation = allWordNum - 1;
+            pause = false;
+            playNextWord();
         } else {
-            targetLocation += 2;
+            showTip(getString(R.string.cannot_switch));
         }
-        if (targetLocation < 0) targetLocation = 0;
-        if (targetLocation >= allWordNum) targetLocation = allWordNum - 1;
-        pause = false;
-        playNextWord();
     }
 
     /**
      * 切换到下一个单词
      */
     public void next(View v) {
-        if (mediaPlayer != null && mediaPlayer.isPlaying())
-            pausePlay();
-        if (targetLocation > allWordNum) targetLocation = allWordNum - 1;
-        pause = false;
-        playNextWord();
+        if (!repeat) {
+            if (mediaPlayer != null && mediaPlayer.isPlaying())
+                pausePlay();
+            if (targetLocation > allWordNum) targetLocation = allWordNum - 1;
+            pause = false;
+            playNextWord();
+        } else {
+            showTip(getString(R.string.cannot_switch));
+        }
     }
 
     /**
@@ -1077,10 +1111,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void buttonFunction() {
-        if (!reversed && !isPlaying && pause && targetLocation > 1) {
+        if (repeat && !reversed && !isPlaying && pause && targetLocation > 1) {
             LogUtils.i("targetLocation", targetLocation + "：目标单词索引");
             targetLocation++;
-        } else if (reversed && !isPlaying && pause && targetLocation < allWordNum - 1) {
+        } else if (repeat && reversed && !isPlaying && pause && targetLocation < allWordNum - 1) {
             LogUtils.i("targetLocation", targetLocation + "：目标单词索引");
             targetLocation--;
         }
@@ -1262,14 +1296,7 @@ public class MainActivity extends AppCompatActivity {
         //移动数据统计分析
         FlowerCollector.onPageEnd(TAG);
         FlowerCollector.onPause(MainActivity.this);
-        SharedPreferences sp = getSharedPreferences("saved_data", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sp.edit();
-        editor.putInt("savedSpinnerPos", savedSpinnerPos);
-        editor.putInt("savedWordPos", targetLocation);
-        editor.putBoolean("repeat", repeat);
-        editor.putBoolean("reversed", reversed);
-        editor.putBoolean("autoRestart", autoRestart);
-        editor.apply();
+        saveData(); //保存用户数据
         super.onPause();
     }
 
