@@ -45,13 +45,13 @@ public class MediaButtonReceiver extends BroadcastReceiver {
                 context.sendBroadcast(intent1);
             }
             if (KeyEvent.KEYCODE_MEDIA_PREVIOUS == keyCode) {
-                // todo:previous
+                // previous
                 LogUtils.i(TAG, "previous play");
                 Intent intent1 = new Intent("previous");
                 context.sendBroadcast(intent1);
             }
             if (KeyEvent.KEYCODE_MEDIA_NEXT == keyCode) {
-                // todo:next
+                // next
                 LogUtils.i(TAG, "next play");
                 Intent intent1 = new Intent("next");
                 context.sendBroadcast(intent1);

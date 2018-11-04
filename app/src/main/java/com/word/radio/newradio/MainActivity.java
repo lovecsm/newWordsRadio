@@ -1,6 +1,7 @@
 package com.word.radio.newradio;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -12,24 +13,35 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.Settings;
+import android.renderscript.Allocation;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicBlur;
 import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
@@ -68,6 +80,10 @@ public class MainActivity extends AppCompatActivity {
     private ProgressDialog progressDialog;
     private boolean inBg;
     private Notification notification;
+    private int originalW;
+    private int originalH;
+    private Handler mHandler;
+    private ImageView dialogBg;
 
 
     //单词相关
@@ -111,16 +127,109 @@ public class MainActivity extends AppCompatActivity {
     private AudioManager mAudioManager;
     private ComponentName mComponentName;
     private MyBroadcastReceiver myBroadcastReceiver;
+    private int savedSpinnerPos, savedWordPos;
+    /**
+     * 合成回调监听。
+     */
+    private SynthesizerListener mTtsListener = new SynthesizerListener() {
 
-    @Override
+        @Override
+        public void onSpeakBegin() {
+            //showTip("开始播放");
+        }
+
+        @Override
+        public void onSpeakPaused() {
+            //showTip("暂停播放");
+        }
+
+        @Override
+        public void onSpeakResumed() {
+            //showTip("继续播放");
+        }
+
+        @Override
+        public void onBufferProgress(int percent, int beginPos, int endPos,
+                                     String info) {
+            // 合成进度
+
+        }
+
+        @Override
+        public void onSpeakProgress(int percent, int beginPos, int endPos) {
+            // 播放进度
+
+        }
+
+        @Override
+        public void onCompleted(SpeechError error) {
+            if (error == null) {
+                // 播放完成监听
+                //showTip("缓存完成");
+                if (!pause)
+                    //playChinese();
+                    playNextWord();
+            } else {
+                showTip(error.getPlainDescription(true));
+            }
+        }
+
+        @Override
+        public void onEvent(int eventType, int arg1, int arg2, Bundle obj) {
+            // 以下代码用于获取与云端的会话id，当业务出错时将会话id提供给技术支持人员，可用于查询会话日志，定位出错原因
+            // 若使用本地能力，会话id为null
+            LogUtils.e(TAG, "TTS Demo onEvent >>>" + eventType);
+            if (SpeechEvent.EVENT_SESSION_ID == eventType) {
+                String sid = obj.getString(SpeechEvent.KEY_EVENT_SESSION_ID);
+                LogUtils.d(TAG, "session id =" + sid);
+            }
+        }
+    };
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        // 初始化界面并读取单词数据
-        initView();
-        initSpinner();
-        initSpeech();
-        initBroadCast();
+        restoreData();  //恢复数据
+        initView();     //初始化界面
+        initSpinner();  //初始化spinner
+        applyData();    //应用恢复出来的数据
+        initSpeech();   //初始化发音引擎
+        initBroadCast();//初始化线控广播接收器
+    }
+
+    private void restoreData() {
+        SharedPreferences sp = getSharedPreferences("saved_data", Context.MODE_PRIVATE);
+        savedSpinnerPos = sp.getInt("savedSpinnerPos", 0);
+        savedWordPos = sp.getInt("savedWordPos", 0);
+        repeat = sp.getBoolean("repeat", false);
+        reversed = sp.getBoolean("reversed", false);
+        autoRestart = sp.getBoolean("autoRestart", false);
+    }
+
+    private void applyData() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    spinner.setSelection(savedSpinnerPos, true);
+                    Thread.sleep(1000);
+                    if (!reversed) {
+                        targetLocation = savedWordPos - 1;
+                        LogUtils.i("get number is: ", targetLocation + "");
+                        getTargetWord(targetLocation++);
+                    } else {
+                        targetLocation = savedWordPos + 1;
+                        LogUtils.i("get number is: ", targetLocation + "");
+                        getTargetWord(targetLocation--);
+                    }
+
+                    //getTargetWord(targetLocation++);
+                    updateProgress();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     @Override
@@ -130,30 +239,9 @@ public class MainActivity extends AppCompatActivity {
         File file = new File(getExternalCacheDir() + "/wordAudios");
         if (!file.exists()) {
             initMp3();
-        }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu, menu);
-        menuItem = menu.findItem(R.id.readChinese); // 朗读中文
-        menuItem1 = menu.findItem(R.id.readTimes);  // 朗读次数
-        menuItem2 = menu.findItem(R.id.reversed);   // 倒序播放
-        menuItem3 = menu.findItem(R.id.autoRestart);// 自动重播
-        menuItem4 = menu.findItem(R.id.floatWindow);// 悬浮窗开关
-        sharedPreferences = getSharedPreferences("read", Context.MODE_PRIVATE);
-        editor = sharedPreferences.edit();      //获取编辑器
-        flag = sharedPreferences.getBoolean("read", false);
-        if (flag == true) {
-            menuItem.setIcon(R.mipmap.not_chinese);
-            menuItem.setTitle(R.string.not_read_chinese);
         } else {
-            menuItem.setIcon(R.mipmap.chinese);
-            menuItem.setTitle(R.string.read_chinese);
+            System.gc();
         }
-        needPlayChinese = !flag;
-        return true;
     }
 
     @Override
@@ -228,7 +316,45 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    @SuppressLint("CommitPrefEdits")
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        menuItem = menu.findItem(R.id.readChinese); // 朗读中文
+        menuItem1 = menu.findItem(R.id.readTimes);  // 朗读次数
+        menuItem2 = menu.findItem(R.id.reversed);   // 倒序播放
+        menuItem3 = menu.findItem(R.id.autoRestart);// 自动重播
+        menuItem4 = menu.findItem(R.id.floatWindow);// 悬浮窗开关
+        // 恢复数据时看是否需要重复播放
+        if (reversed)
+            menuItem2.setTitle(R.string.not_reversed);
+        else
+            menuItem2.setTitle(R.string.reversed);
+        // 恢复数据是看是否需要自动重播
+        if (autoRestart)
+            menuItem3.setTitle(R.string.not_auto_restart);
+        else
+            menuItem3.setTitle(R.string.auto_restart);
+        sharedPreferences = getSharedPreferences("read", Context.MODE_PRIVATE);
+        editor = sharedPreferences.edit();      //获取编辑器
+        flag = sharedPreferences.getBoolean("read", false);
+        if (flag) {
+            menuItem.setIcon(R.mipmap.not_chinese);
+            menuItem.setTitle(R.string.not_read_chinese);
+        } else {
+            menuItem.setIcon(R.mipmap.chinese);
+            menuItem.setTitle(R.string.read_chinese);
+        }
+        needPlayChinese = !flag;
+        return true;
+    }
+
+    @SuppressLint("HandlerLeak")
     private void initView() {
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setFitsSystemWindows(true);
         currentWord = findViewById(R.id.current_word);
         currentChinese = findViewById(R.id.current_chinese);
         allWordTextView = findViewById(R.id.allWords);
@@ -236,6 +362,20 @@ public class MainActivity extends AppCompatActivity {
         speechButton = findViewById(R.id.speech);
         mCloudVoicersEntries = getResources().getStringArray(R.array.voicer_cloud_entries);
         mCloudVoicersValue = getResources().getStringArray(R.array.voicer_cloud_values);
+        dialogBg = findViewById(R.id.iv_dialog_bg);
+        //创建activity先把对话框背景图设为不可见
+        dialogBg.setImageAlpha(0);
+        dialogBg.setVisibility(View.GONE);
+        mHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                if (msg.what == 0) {
+                    dialogBg.setVisibility(View.GONE);
+                    System.gc();
+                }
+            }
+        };
     }
 
     private void initMp3() {
@@ -243,6 +383,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 try {
+                    Thread.sleep(200);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            handleBlur();
+                        }
+                    });
                     buildProgressDialog(R.string.loading);
                     ReadFile.unZip(MainActivity.this, "wordAudios.zip", getExternalCacheDir() + "/wordAudios", true);
                     cancelProgressDialog();
@@ -271,6 +418,7 @@ public class MainActivity extends AppCompatActivity {
                 progressDialog.setMessage(getString(id));
                 progressDialog.setCancelable(false);
                 progressDialog.show();
+                setScreenBgLight(progressDialog);//设置窗口背景明暗度
             }
         });
 
@@ -286,10 +434,159 @@ public class MainActivity extends AppCompatActivity {
                 if (progressDialog != null)
                     if (progressDialog.isShowing()) {
                         progressDialog.dismiss();
+                        hideBlur();
                     }
             }
         });
     }
+
+    /*模糊背景加载*/
+    private Bitmap captureScreen(Activity activity) {
+        activity.getWindow().getDecorView().destroyDrawingCache();  //先清理屏幕绘制缓存(重要)
+        activity.getWindow().getDecorView().setDrawingCacheEnabled(true);
+        Bitmap bmp = activity.getWindow().getDecorView().getDrawingCache();
+        //获取原图尺寸
+        originalW = bmp.getWidth();
+        originalH = bmp.getHeight();
+        //对原图进行缩小，提高下一步高斯模糊的效率
+        bmp = Bitmap.createScaledBitmap(bmp, originalW / 4, originalH / 4, false);
+        return bmp;
+    }
+
+    private void setScreenBgLight(ProgressDialog dialog) {
+        Window window = dialog.getWindow();
+        WindowManager.LayoutParams lp;
+        if (window != null) {
+            lp = window.getAttributes();
+            lp.dimAmount = 0.1f;
+            window.setAttributes(lp);
+        }
+    }
+
+    private void handleBlur() {
+        Bitmap bp = captureScreen(MainActivity.this);
+        bp = blur(bp);                      //对屏幕截图模糊处理
+        //将模糊处理后的图恢复到原图尺寸并显示出来
+        bp = Bitmap.createScaledBitmap(bp, originalW, originalH, false);
+        dialogBg.setImageBitmap(bp);
+        dialogBg.setVisibility(View.VISIBLE);
+        //防止UI线程阻塞，在子线程中让背景实现淡入效果
+        asyncRefresh(true);
+    }
+
+    private void asyncRefresh(boolean in) {
+        //淡出淡入效果的实现
+        if (in) {    //淡入效果
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int i = 0; i < 256; i += 5) {
+                        refreshUI(i);//在UI线程刷新视图
+                        try {
+                            Thread.sleep(6);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }).start();
+        } else {    //淡出效果
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int i = 255; i >= 0; i -= 5) {
+                        refreshUI(i);//在UI线程刷新视图
+                        try {
+                            Thread.sleep(6);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    //当淡出效果完毕后发送消息给mHandler把对话框背景设为不可见
+                    mHandler.sendEmptyMessage(0);
+                }
+            }).start();
+        }
+    }
+
+    private void refreshUI(final int i) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                dialogBg.setImageAlpha(i);
+            }
+        });
+    }
+
+    private void hideBlur() {
+        //把对话框背景隐藏
+        asyncRefresh(false);
+    }
+
+    private Bitmap blur(Bitmap bitmap) {
+        //使用RenderScript对图片进行高斯模糊处理
+        Bitmap output = Bitmap.createBitmap(bitmap); // 创建输出图片
+        RenderScript rs = RenderScript.create(this); // 构建一个RenderScript对象
+        ScriptIntrinsicBlur gaussianBlue = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs)); //
+        // 创建高斯模糊脚本
+        Allocation allIn = Allocation.createFromBitmap(rs, bitmap); // 开辟输入内存
+        Allocation allOut = Allocation.createFromBitmap(rs, output); // 开辟输出内存
+        float radius = 10f;     //设置模糊半径
+        gaussianBlue.setRadius(radius); // 设置模糊半径，范围0f<radius<=25f
+        gaussianBlue.setInput(allIn); // 设置输入内存
+        gaussianBlue.forEach(allOut); // 模糊编码，并将内存填入输出内存
+        allOut.copyTo(output); // 将输出内存编码为Bitmap，图片大小必须注意
+        rs.destroy();
+        //rs.releaseAllContexts(); // 关闭RenderScript对象，API>=23则使用rs.releaseAllContexts()
+        return output;
+    }
+
+    private void initWordsHashMap() {
+        int location = 0;
+        while (m.find()) {
+            //LogUtils.e("look", location + "");
+            wordsHashMap.put(location++, m.group(1) + "|" + m.group(2));
+        }
+        allWordNum = location;  //将单词总数返回给allWordNum
+    }
+
+
+    /**
+     * 发音人选择。
+     */
+    private void showPersonSelectDialog() {
+
+        new AlertDialog.Builder(this).setTitle("在线合成发音人选项")
+                .setSingleChoiceItems(mCloudVoicersEntries, // 单选框有几项,各是什么名字
+                        selectedNum, // 默认的选项
+                        new DialogInterface.OnClickListener() { // 点击单选框后的处理
+                            public void onClick(DialogInterface dialog,
+                                                int which) { // 点击了哪一项
+                                voicer = mCloudVoicersValue[which];
+                                selectedNum = which;
+                                dialog.dismiss();
+                            }
+                        }).show();
+    }
+
+    /**
+     * 初始化合成对象
+     */
+    private void initSpeech() {
+        mTts = SpeechSynthesizer.createSynthesizer(MainActivity.this, mTtsInitListener);
+    }
+
+    /**
+     * 初始化监听。
+     */
+    private InitListener mTtsInitListener = new InitListener() {
+        @Override
+        public void onInit(int code) {
+            if (code != ErrorCode.SUCCESS) {
+                showTip("初始化失败,错误码：" + code);
+            }
+        }
+    };
 
     private void initSpinner() {
         // 数据源
@@ -410,6 +707,7 @@ public class MainActivity extends AppCompatActivity {
                         words = ReadFile.readAssetsFile(getApplicationContext(), "part_35");
                         break;
                 }
+                savedSpinnerPos = position;
                 m = p.matcher(words);
                 wordsHashMap.clear();
                 initWordsHashMap();
@@ -436,122 +734,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         //创建适配器对象
-        SpinnerAdapter adapter = new ArrayAdapter<String>(this,
+        SpinnerAdapter adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, array);
         //给Spinner设置适配器
         spinner.setAdapter(adapter);
     }
-
-    private void initWordsHashMap() {
-        int location = 0;
-        while (m.find()) {
-            //LogUtils.e("look", location + "");
-            wordsHashMap.put(location++, m.group(1) + "|" + m.group(2));
-        }
-        allWordNum = location;  //将单词总数返回给allWordNum
-    }
-
-
-
-    /**
-     * 发音人选择。
-     */
-    private void showPersonSelectDialog() {
-
-        new AlertDialog.Builder(this).setTitle("在线合成发音人选项")
-                .setSingleChoiceItems(mCloudVoicersEntries, // 单选框有几项,各是什么名字
-                        selectedNum, // 默认的选项
-                        new DialogInterface.OnClickListener() { // 点击单选框后的处理
-                            public void onClick(DialogInterface dialog,
-                                                int which) { // 点击了哪一项
-                                voicer = mCloudVoicersValue[which];
-                                selectedNum = which;
-                                dialog.dismiss();
-                            }
-                        }).show();
-    }
-
-    /**
-     * 初始化合成对象
-     */
-    private void initSpeech() {
-        mTts = SpeechSynthesizer.createSynthesizer(MainActivity.this, mTtsInitListener);
-    }
-
-    /**
-     * 初始化监听。
-     */
-    private InitListener mTtsInitListener = new InitListener() {
-        @Override
-        public void onInit(int code) {
-            if (code != ErrorCode.SUCCESS) {
-                showTip("初始化失败,错误码：" + code);
-            } else {
-                // 初始化成功，之后可以调用startSpeaking方法
-                // 注：有的开发者在onCreate方法中创建完合成对象之后马上就调用startSpeaking进行合成，
-                // 正确的做法是将onCreate中的startSpeaking调用移至这里
-
-            }
-        }
-    };
-
-    /**
-     * 合成回调监听。
-     */
-    private SynthesizerListener mTtsListener = new SynthesizerListener() {
-
-        @Override
-        public void onSpeakBegin() {
-            //showTip("开始播放");
-        }
-
-        @Override
-        public void onSpeakPaused() {
-            //showTip("暂停播放");
-        }
-
-        @Override
-        public void onSpeakResumed() {
-            //showTip("继续播放");
-        }
-
-        @Override
-        public void onBufferProgress(int percent, int beginPos, int endPos,
-                                     String info) {
-            // 合成进度
-
-        }
-
-        @Override
-        public void onSpeakProgress(int percent, int beginPos, int endPos) {
-            // 播放进度
-
-        }
-
-        @Override
-        public void onCompleted(SpeechError error) {
-            if (error == null) {
-                // TODO: 播放完成监听
-                //showTip("缓存完成");
-                if (!pause)
-                    //playChinese();
-                    playNextWord();
-            } else if (error != null) {
-                showTip(error.getPlainDescription(true));
-            }
-        }
-
-        @Override
-        public void onEvent(int eventType, int arg1, int arg2, Bundle obj) {
-            // 以下代码用于获取与云端的会话id，当业务出错时将会话id提供给技术支持人员，可用于查询会话日志，定位出错原因
-            // 若使用本地能力，会话id为null
-            LogUtils.e(TAG, "TTS Demo onEvent >>>" + eventType);
-            if (SpeechEvent.EVENT_SESSION_ID == eventType) {
-                String sid = obj.getString(SpeechEvent.KEY_EVENT_SESSION_ID);
-                LogUtils.d(TAG, "session id =" + sid);
-            }
-        }
-    };
 
     private void showTip(final String str) {
         LogUtils.e("showTip", str);
@@ -566,8 +753,6 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 参数设置
-     *
-     * @return
      */
     private void setParam() {
         // 清空参数
@@ -589,9 +774,9 @@ public class MainActivity extends AppCompatActivity {
             mTts.setParameter(SpeechConstant.ENGINE_TYPE, SpeechConstant.TYPE_LOCAL);
             // 设置本地合成发音人 voicer为空，默认通过语记界面指定发音人。
             mTts.setParameter(SpeechConstant.VOICE_NAME, "");
-            /**
-             * TODO 本地合成不设置语速、音调、音量，默认使用语记设置
-             * 开发者如需自定义参数，请参考在线合成参数设置
+            /*
+              本地合成不设置语速、音调、音量，默认使用语记设置
+              开发者如需自定义参数，请参考在线合成参数设置
              */
         }
         //设置播放器音频流类型为3(音乐)
@@ -605,17 +790,18 @@ public class MainActivity extends AppCompatActivity {
         mTts.setParameter(SpeechConstant.TTS_AUDIO_PATH, getCacheDir() + "/tts.pcm");
     }
 
-    private int speak(String texts) {
+    private void speak(String texts) {
         // 移动数据分析，收集开始合成事件
         FlowerCollector.onEvent(MainActivity.this, "tts_play");
         setParam();
-        String path = getApplicationContext().getCacheDir() + "/tts.ogg";
+        //String path = getApplicationContext().getCacheDir() + "/tts.ogg";
         //int code = mTts.synthesizeToUri(texts, path, mTtsListener);
-        int code = mTts.startSpeaking(texts, mTtsListener);
+        /*int code = */
+        mTts.startSpeaking(texts, mTtsListener);
         /*if (code != ErrorCode.SUCCESS) {
             showTip("语音合成失败,错误码: " + code);
         }*/
-        return code;
+        //return code;
     }
 
     private void initBroadCast() {
@@ -652,7 +838,7 @@ public class MainActivity extends AppCompatActivity {
             location = ++targetLocation;
         }
         LogUtils.i("number is: ", location+"");
-        String word = (String)wordsHashMap.get(location);
+        String word = wordsHashMap.get(location);
         if(word == null){
             return new String[]{"null", "null"};
         }
@@ -684,11 +870,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if(!pause)
             speechButton.setText(R.string.pause);
-        if (!reversed) {
-            mProgressBarHorizontal.setProgress((int) ((targetLocation + 1) / (float)(allWordNum+1) * 100) + 1);
-        } else {
-            mProgressBarHorizontal.setProgress((int) ((allWordNum + 1 - targetLocation) / (float)(allWordNum + 1) * 100) );
-        }
+        updateProgress();
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -751,11 +933,19 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
+    private void updateProgress() {
+        if (!reversed) {
+            mProgressBarHorizontal.setProgress((int) ((targetLocation + 1) / (float) (allWordNum + 1) * 100) + 1);
+        } else {
+            mProgressBarHorizontal.setProgress((int) ((allWordNum + 1 - targetLocation) / (float) (allWordNum + 1) * 100));
+        }
+    }
+
 
     /**
      * 播放指定文件地址的音频
      *
-     * @param word
+     * @param word 单词
      */
     public void play(String word) {
         if (mTts.isSpeaking()) {
@@ -784,7 +974,7 @@ public class MainActivity extends AppCompatActivity {
                     if (count < times) {
                         mediaPlayer.start();
                         count++;
-                    } else if (count >= times) {
+                    } else {
                         count = 0;
                         mediaPlayer.reset();
                         if (needPlayChinese) {
@@ -808,11 +998,11 @@ public class MainActivity extends AppCompatActivity {
      */
     private void pausePlay() {
         count = 0;
-        if (mediaPlayer.isPlaying()) {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.stop();
             mediaPlayer.reset();
         }
-        if (mTts.isSpeaking()) {
+        if (mTts != null && mTts.isSpeaking()) {
             mTts.stopSpeaking();
         }
     }
@@ -821,14 +1011,14 @@ public class MainActivity extends AppCompatActivity {
      * 继续播放当前单词
      */
     private void continuePlay() {
-        if (mediaPlayer != null) {
+        //if (mediaPlayer != null) {
             if (!reversed) {
                 targetLocation--;
             } else {
                 targetLocation++;
             }
             playNextWord();
-        }
+        //}
     }
 
     public void repeatPlay(View v) {
@@ -891,17 +1081,19 @@ public class MainActivity extends AppCompatActivity {
             LogUtils.i("targetLocation", targetLocation + "呵呵哈哈哈");
             targetLocation--;
         }
-        if(pause) pause = false;
-        else pause = true;
+        pause = !pause;
         if (!reversed) {
             if (!isPlaying) { // 没有在播放
                 isPlaying = true;
                 speechButton.setText(R.string.pause);
                 if (targetLocation < allWordNum && targetLocation >= 0) {
-                    if (targetLocation == 0)
+                    if (targetLocation == 0) {
                         playNextWord();
-                    else
+                        LogUtils.i("播放下一首");
+                    } else {
                         continuePlay();
+                        LogUtils.i("继续播放");
+                    }
                 } else {
                     targetLocation = 0;
                     //LogUtils.e("restart", "重来");
@@ -1060,10 +1252,19 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        LogUtils.i("触发onPause");
         inBg = true;
         //移动数据统计分析
         FlowerCollector.onPageEnd(TAG);
         FlowerCollector.onPause(MainActivity.this);
+        SharedPreferences sp = getSharedPreferences("saved_data", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putInt("savedSpinnerPos", savedSpinnerPos);
+        editor.putInt("savedWordPos", targetLocation);
+        editor.putBoolean("repeat", repeat);
+        editor.putBoolean("reversed", reversed);
+        editor.putBoolean("autoRestart", autoRestart);
+        editor.apply();
         super.onPause();
     }
 

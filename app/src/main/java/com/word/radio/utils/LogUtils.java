@@ -6,7 +6,7 @@ public class LogUtils {
 
     public static boolean isDebug = false;
 
-    private final static String APP_TAG = "perfectBill";
+    private final static String APP_TAG = "WordRadio";
 
     /**
      * 获取相关数据:类名,方法名,行号等.用来定位行
