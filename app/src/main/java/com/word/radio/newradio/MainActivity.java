@@ -43,6 +43,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RemoteViews;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
 import android.widget.TextView;
@@ -78,12 +79,12 @@ public class MainActivity extends AppCompatActivity {
     private boolean isExit, openFloatWindow;
     private FloatView mFloatView;
     private ProgressDialog progressDialog;
-    private boolean inBg;
     private Notification notification;
     private int originalW;
     private int originalH;
     private Handler mHandler;
     private ImageView dialogBg;
+    private boolean hashMapComplete;
 
 
     //单词相关
@@ -178,7 +179,8 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 try {
                     spinner.setSelection(savedSpinnerPos, true);
-                    Thread.sleep(1000);
+                    while (!hashMapComplete)
+                        Thread.sleep(2);
                     if (!reversed) {
                         targetLocation = savedWordPos - 1;
                         LogUtils.i("get number is: ", targetLocation + "");
@@ -514,6 +516,7 @@ public class MainActivity extends AppCompatActivity {
             wordsHashMap.put(location++, m.group(1) + "|" + m.group(2));
         }
         allWordNum = location;  //将单词总数返回给allWordNum
+        hashMapComplete = true;
     }
 
 
@@ -845,6 +848,7 @@ public class MainActivity extends AppCompatActivity {
         myBroadcastReceiver = new MyBroadcastReceiver();
         registerReceiver(myBroadcastReceiver, intentFilter);
 
+
     }
 
     private void playByTts() {
@@ -880,8 +884,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        if(inBg)
-            showNotification(getApplicationContext(), mWord, mChinese);
+        showNotification(getApplicationContext(), mWord, mChinese);
 
         return new String[]{mWord, mChinese};
     }
@@ -1165,6 +1168,9 @@ public class MainActivity extends AppCompatActivity {
                 isPlaying = !isPlaying;
             }
         }
+        if (content != null)
+            showNotification(getApplicationContext(), content[0], content[1]);
+
     }
 
     /**
@@ -1207,31 +1213,43 @@ public class MainActivity extends AppCompatActivity {
      * 通知栏通知
      */
     public void showNotification(Context context, String title, String msg) {
+
+        Intent previousIntent = new Intent("previous");
+        Intent middleIntent = new Intent("ok");
+        Intent nextIntent = new Intent("next");
+        PendingIntent preIntent = PendingIntent.getBroadcast(this, 0, previousIntent, 0);
+        PendingIntent midIntent = PendingIntent.getBroadcast(this, 0, middleIntent, 0);
+        PendingIntent nexIntent = PendingIntent.getBroadcast(this, 0, nextIntent, 0);
+
+        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification_layout); //自定义的布局视图
+        remoteViews.setTextViewText(R.id.notif_title, title);
+        remoteViews.setTextViewText(R.id.notif_subtitle, msg);
+        remoteViews.setImageViewResource(R.id.notif_icon_iv, R.mipmap.icon);
+        remoteViews.setImageViewResource(R.id.notif_next_bt, R.mipmap.next);
+        remoteViews.setImageViewResource(R.id.notif_previous_bt, R.mipmap.previous);
+        if (pause)
+            remoteViews.setImageViewResource(R.id.notif_middle_bt, R.mipmap.play);
+        else
+            remoteViews.setImageViewResource(R.id.notif_middle_bt, R.mipmap.pause);
+
+        remoteViews.setOnClickPendingIntent(R.id.notif_previous_bt, preIntent);
+        remoteViews.setOnClickPendingIntent(R.id.notif_middle_bt, midIntent);
+        remoteViews.setOnClickPendingIntent(R.id.notif_next_bt, nexIntent);
+
         notification = new NotificationCompat.Builder(context)
-                /*设置通知左边的大图标*/
                 .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.icon))
-                /*设置通知右边的小图标*/
                 .setSmallIcon(R.mipmap.icon)
-                /*通知首次出现在通知栏，带上升动画效果的*/
                 .setTicker("通知来了")
-                /*设置通知的标题*/
                 .setContentTitle(title)
-                /*设置通知的内容*/
                 .setContentText(msg)
-                /*通知产生的时间，会在通知信息里显示*/
                 .setWhen(System.currentTimeMillis())
-                /*设置该通知优先级**/
                 .setPriority(Notification.PRIORITY_HIGH)
-                /*设置这个标志当用户单击面板就可以让通知将自动取消*/
-                .setAutoCancel(true)
-                /*设置他为一个正在进行的通知。他们通常是用来表示一个后台任务,用户积极参与(如播放音乐)或以某种方式正在等待,因此占用设备(如一个文件下载,同步操作,主动网络连接)*/
+                .setAutoCancel(false)
                 .setOngoing(true)
-                /*向通知添加声音、闪灯和振动效果的最简单、最一致的方式是使用当前的用户默认设置，使用defaults属性，可以组合：*/
-                //.setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND)
                 .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
+                .setCustomContentView(remoteViews)
                 .build();
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
-        /*发起通知*/
         notificationManager.notify(0, notification);
     }
 
@@ -1282,7 +1300,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         //mAudioManager.registerMediaButtonEventReceiver(mComponentName);
         //registerReceiver(headSetReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
-        inBg = false;
         //移动数据统计分析
         FlowerCollector.onResume(MainActivity.this);
         FlowerCollector.onPageStart(TAG);
@@ -1292,7 +1309,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         LogUtils.i("触发onPause");
-        inBg = true;
         //移动数据统计分析
         FlowerCollector.onPageEnd(TAG);
         FlowerCollector.onPause(MainActivity.this);
@@ -1324,6 +1340,7 @@ public class MainActivity extends AppCompatActivity {
             // 退出时释放连接
             mTts.destroy();
         }
+        notification = null;
         super.onDestroy();
     }
 

@@ -36,7 +36,6 @@ public class LogUtils {
     }
 
 
-
     public static void v(String msg) {
         if (isDebug) {
             Log.v(APP_TAG, getMsgFormat(msg));
@@ -74,7 +73,6 @@ public class LogUtils {
             Log.i(tag, getMsgFormat(msg));
         }
     }
-
 
 
     public static void w(String msg) {

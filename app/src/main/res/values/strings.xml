@@ -8,6 +8,7 @@
     <string name="restart">重播</string>
     <string name="hello">example</string>
     <string name="world">n.例子，实例，模范</string>
+    <string name="cannot_switch">重复播放时无法切换单词哦</string>
     <string name="read_chinese">朗读中文释义</string>
     <string name="read_times">只读一遍</string>
     <string name="reversed">倒序播放</string>
