@@ -2,22 +2,18 @@ package com.word.radio.newradio;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -30,7 +26,6 @@ import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicBlur;
-import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -70,6 +65,7 @@ import com.iflytek.cloud.SynthesizerListener;
 import com.iflytek.sunflower.FlowerCollector;
 
 import com.word.radio.utils.LogUtils;
+import com.word.radio.utils.NotificationUtil;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -82,8 +78,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean isExit, openFloatWindow;
     private FloatView mFloatView;
     private ProgressDialog progressDialog;
-    private Notification notification;
-    private NotificationManager notificationManager;
     private int originalW;
     private int originalH;
     private Handler mHandler;
@@ -99,9 +93,6 @@ public class MainActivity extends AppCompatActivity {
     private Map<Integer, String> wordsHashMap = new HashMap<>();
     private int allWordNum = 0, targetLocation = 0;
 
-    //朗读相关
-    private File tempFile;
-    private FileInputStream fis;
     private MediaPlayer mediaPlayer;
     int times = 2; //单词播放总次数
     int count = 0; //控制单词当前已经播放次数
@@ -117,15 +108,22 @@ public class MainActivity extends AppCompatActivity {
     // 语音合成对象
     private SpeechSynthesizer mTts;
     // 引擎类型
-    private String mEngineType = SpeechConstant.TYPE_CLOUD;
+    private String mEngineType;
     // 云端发音人名称列表
     private String[] mCloudVoicersEntries;
     private String[] mCloudVoicersValue;
     // 发音人声音配置
     private String voicer = "xiaoqi";       // 默认发音人
-    final private String VOICE_VOL = "85";  // 音量
-    final private String VOICE_TONE = "50"; // 音调
-    final private String VOICE_SPEED = "50";// 语速
+    final private String VOICE_VOL;  // 音量
+    final private String VOICE_TONE; // 音调
+    final private String VOICE_SPEED;// 语速
+
+    {
+        mEngineType = SpeechConstant.TYPE_CLOUD;
+        VOICE_VOL = "85";
+        VOICE_TONE = "50";
+        VOICE_SPEED = "50";
+    }
 
     // 线控相关
     private MediaButtonReceiver mediaButtonReceiver;
@@ -157,54 +155,9 @@ public class MainActivity extends AppCompatActivity {
         applyData();
     }
 
-    private void saveData() {
-        SharedPreferences sp = getSharedPreferences("saved_data", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sp.edit();
-        editor.putInt("savedSpinnerPos", savedSpinnerPos);
-        editor.putInt("savedWordPos", targetLocation);
-        editor.putBoolean("repeat", repeat);
-        editor.putBoolean("reversed", reversed);
-        editor.putBoolean("autoRestart", autoRestart);
-        editor.apply();
-    }
-    private void restoreData() {
-        SharedPreferences sp = getSharedPreferences("saved_data", Context.MODE_PRIVATE);
-        savedSpinnerPos = sp.getInt("savedSpinnerPos", 0);
-        savedWordPos = sp.getInt("savedWordPos", 0);
-        repeat = sp.getBoolean("repeat", false);
-        reversed = sp.getBoolean("reversed", false);
-        autoRestart = sp.getBoolean("autoRestart", false);
-    }
-
-    private void applyData() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    spinner.setSelection(savedSpinnerPos, true);
-                    while (!hashMapComplete)
-                        Thread.sleep(2);
-                    if (!reversed) {
-                        targetLocation = savedWordPos - 1;
-                        LogUtils.i("get number is: ", targetLocation + "");
-                        getTargetWord(targetLocation++);
-                    } else {
-                        targetLocation = savedWordPos + 1;
-                        LogUtils.i("get number is: ", targetLocation + "");
-                        getTargetWord(targetLocation--);
-                    }
-                    updateProgress();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-    }
-
     @Override
-    public void onWindowFocusChanged(boolean hasChanged) {
-        super.onWindowFocusChanged(hasChanged);
-        // 复制MP3数据
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
         File file = new File(getExternalCacheDir() + "/wordAudios");
         if (!file.exists()) {
             initMp3();
@@ -347,18 +300,65 @@ public class MainActivity extends AppCompatActivity {
         };
     }
 
+    private void saveData() {
+        SharedPreferences sp = getSharedPreferences("saved_data", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putInt("savedSpinnerPos", savedSpinnerPos);
+        editor.putInt("savedWordPos", targetLocation);
+        editor.putBoolean("repeat", repeat);
+        editor.putBoolean("reversed", reversed);
+        editor.putBoolean("autoRestart", autoRestart);
+        editor.apply();
+    }
+
+    private void restoreData() {
+        SharedPreferences sp = getSharedPreferences("saved_data", Context.MODE_PRIVATE);
+        savedSpinnerPos = sp.getInt("savedSpinnerPos", 0);
+        savedWordPos = sp.getInt("savedWordPos", 0);
+        repeat = sp.getBoolean("repeat", false);
+        reversed = sp.getBoolean("reversed", false);
+        autoRestart = sp.getBoolean("autoRestart", false);
+    }
+
+    private void applyData() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    spinner.setSelection(savedSpinnerPos);
+                    while (!hashMapComplete)
+                        Thread.sleep(2);
+                    if (!reversed) {
+                        targetLocation = savedWordPos - 1;
+                        LogUtils.i("get number is: ", targetLocation + "");
+                        getTargetWord(targetLocation++);
+                    } else {
+                        targetLocation = savedWordPos + 1;
+                        LogUtils.i("get number is: ", targetLocation + "");
+                        getTargetWord(targetLocation--);
+                    }
+                    updateProgress();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
     private void initMp3() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(200);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            handleBlur();
-                        }
-                    });
+                    Thread.sleep(100);
+                    if (Build.VERSION.SDK_INT > 21) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                handleBlur();
+                            }
+                        });
+                    }
                     buildProgressDialog(R.string.loading);
                     ReadFile.unZip(MainActivity.this, "wordAudios.zip", getExternalCacheDir() + "/wordAudios", true);
                     cancelProgressDialog();
@@ -987,8 +987,9 @@ public class MainActivity extends AppCompatActivity {
             if (mediaPlayer == null)
                 mediaPlayer = new MediaPlayer();
             //LogUtils.e("word", word);
-            tempFile = new File(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
-            fis = new FileInputStream(tempFile);
+            //朗读相关
+            File tempFile = new File(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
+            FileInputStream fis = new FileInputStream(tempFile);
             mediaPlayer.setDataSource(fis.getFD());
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mediaPlayer.prepare();//同步的准备方法。
@@ -1223,35 +1224,28 @@ public class MainActivity extends AppCompatActivity {
         PendingIntent nexIntent = PendingIntent.getBroadcast(this, 0, nextIntent, 0);
 
         RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification_layout); //自定义的布局视图
-        remoteViews.setTextViewText(R.id.notif_title, title);
-        remoteViews.setTextViewText(R.id.notif_subtitle, msg);
-        remoteViews.setImageViewResource(R.id.notif_icon_iv, R.mipmap.icon);
-        remoteViews.setImageViewResource(R.id.notif_next_bt, R.mipmap.next);
-        remoteViews.setImageViewResource(R.id.notif_previous_bt, R.mipmap.previous);
+        remoteViews.setTextViewText(R.id.notify_title, title);
+        remoteViews.setTextViewText(R.id.notify_subtitle, msg);
+        remoteViews.setImageViewResource(R.id.notify_icon_iv, R.mipmap.ic_launcher);
+        remoteViews.setImageViewResource(R.id.notify_next_bt, R.mipmap.next);
+        remoteViews.setImageViewResource(R.id.notify_previous_bt, R.mipmap.previous);
         if (pause)
-            remoteViews.setImageViewResource(R.id.notif_middle_bt, R.mipmap.play);
+            remoteViews.setImageViewResource(R.id.notify_middle_bt, R.mipmap.play);
         else
-            remoteViews.setImageViewResource(R.id.notif_middle_bt, R.mipmap.pause);
+            remoteViews.setImageViewResource(R.id.notify_middle_bt, R.mipmap.pause);
 
-        remoteViews.setOnClickPendingIntent(R.id.notif_previous_bt, preIntent);
-        remoteViews.setOnClickPendingIntent(R.id.notif_middle_bt, midIntent);
-        remoteViews.setOnClickPendingIntent(R.id.notif_next_bt, nexIntent);
+        remoteViews.setOnClickPendingIntent(R.id.notify_previous_bt, preIntent);
+        remoteViews.setOnClickPendingIntent(R.id.notify_middle_bt, midIntent);
+        remoteViews.setOnClickPendingIntent(R.id.notify_next_bt, nexIntent);
 
-        notification = new NotificationCompat.Builder(context)
-                .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.icon))
-                .setSmallIcon(R.mipmap.icon)
-                .setTicker("通知来了")
-                .setContentTitle(title)
-                .setContentText(msg)
-                .setWhen(System.currentTimeMillis())
-                .setPriority(Notification.PRIORITY_HIGH)
-                .setAutoCancel(false)
-                .setOngoing(true)
-                .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
-                .setCustomContentView(remoteViews)
-                .build();
-        notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
-        notificationManager.notify(0, notification);
+        // 适配安卓8.0以下和以上的通知
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationUtil.getNotification(context, title, msg, remoteViews, "0",
+                    getString(R.string.notify_channelName));
+        } else {
+            NotificationUtil.getNotification(context, title, msg, remoteViews);
+        }
+
     }
 
     /**
@@ -1321,8 +1315,12 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        notificationManager.cancel(0);
-        notification = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationUtil.cancelNotification(getApplicationContext(), "0",
+                    getString(R.string.notify_channelName));
+        } else {
+            NotificationUtil.cancelNotification(getApplicationContext());
+        }
         if (mediaPlayer != null) {
             mediaPlayer.release();
         }

@@ -22,6 +22,7 @@
     <string name="loading">正在解压数据文件(不消耗流量)…</string>
     <string name="init_complete">加载数据完成！</string>
     <string name="init_failed">加载数据失败，请尝试清除应用数据释放空间后再试</string>
+    <string name="notify_channelName">单词详情</string>
     <!--TTS合成相关-->
     <string name="app_id">5b9dcecc</string>
     <string name="choose_voice">选择发音人</string>
