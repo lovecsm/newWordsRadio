@@ -6,6 +6,9 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothHeadset;
+import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -87,7 +90,6 @@ public class MainActivity extends AppCompatActivity {
     private ImageView dialogBg;
     private boolean hashMapComplete;
 
-
     //单词相关
     private String words;
     private Pattern p = Pattern.compile("\\d.*?\\t(.+?)：(.*)");  //匹配单词和解释
@@ -119,16 +121,16 @@ public class MainActivity extends AppCompatActivity {
     // 云端发音人名称列表
     private String[] mCloudVoicersEntries;
     private String[] mCloudVoicersValue;
-
+    // 发音人声音配置
     private String voicer = "xiaoqi";       // 默认发音人
     final private String VOICE_VOL = "85";  // 音量
     final private String VOICE_TONE = "50"; // 音调
     final private String VOICE_SPEED = "50";// 语速
 
-    //线控相关
-    private AudioManager mAudioManager;
-    private ComponentName mComponentName;
+    // 线控相关
+    private MediaButtonReceiver mediaButtonReceiver;
     private MyBroadcastReceiver myBroadcastReceiver;
+    private HeadSetReceiver headSetReceiver;
     private int savedSpinnerPos, savedWordPos;
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -832,11 +834,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void initBroadCast() {
         //线控广播接收器
-        mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        // AudioManager注册一个MediaButton对象
-        mComponentName = new ComponentName(getPackageName(), MediaButtonReceiver.class.getName());
-        mAudioManager.registerMediaButtonEventReceiver(mComponentName);
-        registerReceiver(headSetReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
+        mediaButtonReceiver = new MediaButtonReceiver();
+        registerReceiver(mediaButtonReceiver, new IntentFilter(Intent.ACTION_MEDIA_BUTTON));
+
+        // 耳机拔插广播接收器
+        headSetReceiver = new HeadSetReceiver();
+        IntentFilter headSetIF = new IntentFilter();
+        headSetIF.addAction(Intent.ACTION_HEADSET_PLUG);
+        headSetIF.addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
+        registerReceiver(headSetReceiver, headSetIF);
 
         //程序内部广播
         IntentFilter intentFilter = new IntentFilter();
@@ -846,8 +852,6 @@ public class MainActivity extends AppCompatActivity {
         intentFilter.addAction("previous");
         myBroadcastReceiver = new MyBroadcastReceiver();
         registerReceiver(myBroadcastReceiver, intentFilter);
-
-
     }
 
     private void playByTts() {
@@ -873,18 +877,16 @@ public class MainActivity extends AppCompatActivity {
         final String mChinese = word.split("\\|")[1];
 
         runOnUiThread(new Runnable() {
-            @SuppressLint("SetTextI18n")
             @Override
             public void run() {
                 currentWord.setText(mWord);
                 currentChinese.setText(mChinese);
                 if (openFloatWindow) {
-                    mFloatView.textView.setText(mWord + "  " + mChinese);
+                    mFloatView.textView.setText(String.format("%s  %s", mWord, mChinese));
                 }
                 showNotification(getApplicationContext(), mWord, mChinese);
             }
         });
-
 
         return new String[]{mWord, mChinese};
     }
@@ -969,7 +971,6 @@ public class MainActivity extends AppCompatActivity {
             mProgressBarHorizontal.setProgress((int) ((allWordNum + 1 - targetLocation) / (float) (allWordNum + 1) * 100));
         }
     }
-
 
     /**
      * 播放指定文件地址的音频
@@ -1276,6 +1277,8 @@ public class MainActivity extends AppCompatActivity {
         }
         mFloatView = new FloatView(MainActivity.this);
         mFloatView.setLayout(R.layout.float_static);
+        if (currentWord != null && currentChinese != null)
+            mFloatView.textView.setText(String.format("%s  %s", currentWord.getText(), currentChinese.getText()));
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -1318,8 +1321,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        /*if (textToSpeech != null)
-            textToSpeech.shutdown();*/
         notificationManager.cancel(0);
         notification = null;
         if (mediaPlayer != null) {
@@ -1330,12 +1331,9 @@ public class MainActivity extends AppCompatActivity {
                 mFloatView.close();
             mFloatView = null;
         }
-        if (mAudioManager != null)
-            mAudioManager.unregisterMediaButtonEventReceiver(mComponentName);
+        unregisterReceiver(mediaButtonReceiver);
         unregisterReceiver(headSetReceiver);
         unregisterReceiver(myBroadcastReceiver);
-        mAudioManager = null;
-        mComponentName = null;
         if (null != mTts) {
             mTts.stopSpeaking();
             // 退出时释放连接
@@ -1345,32 +1343,31 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    private final BroadcastReceiver headSetReceiver = new BroadcastReceiver() {
+    private class HeadSetReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action != null && action.equals(Intent.ACTION_HEADSET_PLUG)) {
-                // phone headset plugged
-                if (intent.getIntExtra("state", 0) == 1) {
-                    // do something
-//					LogUtils.d(TAG, "耳机检测：插入");
-//					Toast.makeText(context, "耳机检测：插入", Toast.LENGTH_SHORT) .show();
-                    mAudioManager.registerMediaButtonEventReceiver(mComponentName);
-                    // phone head unplugged
-                } else {
-                    // do something
-//					LogUtils.d(TAG, "耳机检测：没有插入");
-//					Toast.makeText(context, "耳机检测：没有插入", Toast.LENGTH_SHORT).show();
-                    if (isPlaying) {
+            if (BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                if (BluetoothProfile.STATE_DISCONNECTED == adapter.getProfileConnectionState(BluetoothProfile.HEADSET) && isPlaying && !pause) {
+                    //Toast.makeText(context, "Bluetooth headset is now disconnected", Toast.LENGTH_LONG).show();
+                    buttonFunction();
+                }
+            } else if ("android.intent.action.HEADSET_PLUG".equals(action)) {
+                if (intent.hasExtra("state")) {
+                    if (intent.getIntExtra("state", 0) == 0 && isPlaying && !pause) {
+                        //Toast.makeText(context, "headset not connected", Toast.LENGTH_LONG).show();
                         buttonFunction();
                     }
-                    mAudioManager.unregisterMediaButtonEventReceiver(mComponentName);
+                    /*else if (intent.getIntExtra("state", 0) == 1){
+                        Toast.makeText(context, "headset connected", Toast.LENGTH_LONG).show();
+                    }*/
                 }
             }
         }
-    };
+    }
 
-    public class MyBroadcastReceiver extends BroadcastReceiver {
+    private class MyBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
