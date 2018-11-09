@@ -80,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
     private FloatView mFloatView;
     private ProgressDialog progressDialog;
     private Notification notification;
+    private NotificationManager notificationManager;
     private int originalW;
     private int originalH;
     private Handler mHandler;
@@ -190,8 +191,6 @@ public class MainActivity extends AppCompatActivity {
                         LogUtils.i("get number is: ", targetLocation + "");
                         getTargetWord(targetLocation--);
                     }
-
-                    //getTargetWord(targetLocation++);
                     updateProgress();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -299,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
             menuItem2.setTitle(R.string.not_reversed);
         else
             menuItem2.setTitle(R.string.reversed);
-        // 恢复数据是看是否需要自动重播
+        // 恢复数据时看是否需要自动重播
         if (autoRestart)
             menuItem3.setTitle(R.string.not_auto_restart);
         else
@@ -882,9 +881,10 @@ public class MainActivity extends AppCompatActivity {
                 if (openFloatWindow) {
                     mFloatView.textView.setText(mWord + "  " + mChinese);
                 }
+                showNotification(getApplicationContext(), mWord, mChinese);
             }
         });
-        showNotification(getApplicationContext(), mWord, mChinese);
+
 
         return new String[]{mWord, mChinese};
     }
@@ -1249,7 +1249,7 @@ public class MainActivity extends AppCompatActivity {
                 .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
                 .setCustomContentView(remoteViews)
                 .build();
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+        notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
         notificationManager.notify(0, notification);
     }
 
@@ -1320,6 +1320,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         /*if (textToSpeech != null)
             textToSpeech.shutdown();*/
+        notificationManager.cancel(0);
+        notification = null;
         if (mediaPlayer != null) {
             mediaPlayer.release();
         }
@@ -1328,7 +1330,6 @@ public class MainActivity extends AppCompatActivity {
                 mFloatView.close();
             mFloatView = null;
         }
-        notification = null;
         if (mAudioManager != null)
             mAudioManager.unregisterMediaButtonEventReceiver(mComponentName);
         unregisterReceiver(headSetReceiver);
@@ -1340,7 +1341,7 @@ public class MainActivity extends AppCompatActivity {
             // 退出时释放连接
             mTts.destroy();
         }
-        notification = null;
+
         super.onDestroy();
     }
 
