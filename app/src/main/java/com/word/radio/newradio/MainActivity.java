@@ -26,6 +26,7 @@ import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicBlur;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -36,6 +37,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -84,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView dialogBg;
     private boolean hashMapComplete;
 
-    //单词相关
+    // 单词相关
     private String words;
     private Pattern p = Pattern.compile("\\d.*?\\t(.+?)：(.*)");  //匹配单词和解释
     private Matcher m;
@@ -94,8 +97,8 @@ public class MainActivity extends AppCompatActivity {
     private int allWordNum = 0, targetLocation = 0;
 
     private MediaPlayer mediaPlayer;
-    int times = 2; //单词播放总次数
-    int count = 0; //控制单词当前已经播放次数
+    private int times = 2; //单词播放总次数
+    private int count = 0; //控制单词当前已经播放次数
     private boolean needPlayChinese = true;
     private boolean isPlaying;
     private String[] content; //[单词, 释义]
@@ -117,7 +120,6 @@ public class MainActivity extends AppCompatActivity {
     final private String VOICE_VOL;  // 音量
     final private String VOICE_TONE; // 音调
     final private String VOICE_SPEED;// 语速
-
     {
         mEngineType = SpeechConstant.TYPE_CLOUD;
         VOICE_VOL = "85";
@@ -177,13 +179,13 @@ public class MainActivity extends AppCompatActivity {
                     needPlayChinese = true;
                     menuItem.setIcon(R.mipmap.chinese);
                     menuItem.setTitle(R.string.read_chinese);
-                    Toast.makeText(getApplicationContext(), R.string.read_chinese, Toast.LENGTH_SHORT).show();
+                    showTip(getString(R.string.read_chinese));
                 } else {
                     editor.putBoolean("read", true);
                     needPlayChinese = false;
                     menuItem.setIcon(R.mipmap.not_chinese);
                     menuItem.setTitle(R.string.not_read_chinese);
-                    Toast.makeText(getApplicationContext(), R.string.not_read_chinese, Toast.LENGTH_SHORT).show();
+                    showTip(getString(R.string.not_read_chinese));
                 }
                 editor.commit();//提交修改
                 break;
@@ -525,8 +527,7 @@ public class MainActivity extends AppCompatActivity {
      * 发音人选择。
      */
     private void showPersonSelectDialog() {
-
-        new AlertDialog.Builder(this).setTitle("在线合成发音人选项")
+        new AlertDialog.Builder(this).setTitle("发音人选择")
                 .setSingleChoiceItems(mCloudVoicersEntries, // 单选框有几项,各是什么名字
                         selectedNum, // 默认的选项
                         new DialogInterface.OnClickListener() { // 点击单选框后的处理
@@ -773,7 +774,8 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
+                Snackbar.make(MainActivity.this.allWordTextView, str, Snackbar.LENGTH_SHORT).show();
             }
         });
 
@@ -879,6 +881,7 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                wordChangeAnim();   // 显示单词切换动画
                 currentWord.setText(mWord);
                 currentChinese.setText(mChinese);
                 if (openFloatWindow) {
@@ -895,6 +898,7 @@ public class MainActivity extends AppCompatActivity {
      * 播放下一个单词
      */
     private void playNextWord() {
+        if (pause) { return; }
         if (!isPlaying) {
             isPlaying = true;
             speechButton.setText(R.string.pause);
@@ -914,7 +918,7 @@ public class MainActivity extends AppCompatActivity {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    Toast.makeText(getApplicationContext(), "获取单词出错", Toast.LENGTH_SHORT).show();
+                                    showTip("获取单词出错");
                                     speechButton.setText(R.string.begin);
                                 }
                             });
@@ -927,7 +931,7 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void run() {
                                 LogUtils.i("targetLocation", targetLocation + "");
-                                Toast.makeText(getApplicationContext(), "播放完毕", Toast.LENGTH_SHORT).show();
+                                showTip("播放完毕");
                                 isPlaying = false;
                                 pause = true;
                                 speechButton.setText(R.string.restart);
@@ -948,7 +952,7 @@ public class MainActivity extends AppCompatActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(getApplicationContext(), "播放完毕", Toast.LENGTH_SHORT).show();
+                                showTip("播放完毕");
                                 isPlaying = false;
                                 pause = true;
                                 speechButton.setText(R.string.restart);
@@ -969,6 +973,17 @@ public class MainActivity extends AppCompatActivity {
             mProgressBarHorizontal.setProgress((int) ((targetLocation + 1) / (float) (allWordNum + 1) * 100) + 1);
         } else {
             mProgressBarHorizontal.setProgress((int) ((allWordNum + 1 - targetLocation) / (float) (allWordNum + 1) * 100));
+        }
+    }
+
+    private void wordChangeAnim() {
+        if(!repeat) {
+            //单词卡片切换动画
+            Animation changeAnim = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.move_left);
+            currentWord.setVisibility(View.VISIBLE);
+            currentChinese.setVisibility(View.VISIBLE);
+            currentWord.startAnimation(changeAnim);
+            currentChinese.startAnimation(changeAnim);
         }
     }
 
@@ -997,8 +1012,13 @@ public class MainActivity extends AppCompatActivity {
             mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
-                    mediaPlayer.start();
-                    count++;
+                    if(pause) {
+                        mediaPlayer.reset();
+                        count = 0;
+                    } else {
+                        mediaPlayer.start();
+                        count++;
+                    }
                 }
             });
             mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -1010,9 +1030,9 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         count = 0;
                         mediaPlayer.reset();
-                        if (needPlayChinese) {
+                        if (needPlayChinese && !pause) {
                             playByTts();
-                        } else {
+                        } else if(!pause) {
                             playNextWord();
                         }
                     }
@@ -1044,7 +1064,6 @@ public class MainActivity extends AppCompatActivity {
      * 继续播放当前单词
      */
     private void continuePlay() {
-        //if (mediaPlayer != null) {
             if (!reversed) {
                 targetLocation--;
             } else {
@@ -1052,7 +1071,6 @@ public class MainActivity extends AppCompatActivity {
             }
         pause = false;
             playNextWord();
-        //}
     }
 
     public void repeatPlay(View v) {
@@ -1186,8 +1204,7 @@ public class MainActivity extends AppCompatActivity {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (!isExit) {
                 isExit = true;
-                Toast.makeText(getApplicationContext(), "再按一次回到桌面",
-                        Toast.LENGTH_SHORT).show();
+                showTip("再按一次回到桌面");
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -1251,7 +1268,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 悬浮窗相关
      */
-    //如果悬浮窗权限存在则返回true
+    // 如果悬浮窗权限存在则返回true
     private boolean checkPermission() {
         // 权限判断
         if (Build.VERSION.SDK_INT >= 23) {
@@ -1282,7 +1299,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "权限授予失败，无法开启悬浮窗", Toast.LENGTH_SHORT).show();
                     finish();
                 } else {
-                    Toast.makeText(this, "权限授予成功！", Toast.LENGTH_SHORT).show();
+                    showTip("权限授予成功！");
                     initFloatWindow();
                 }
             }

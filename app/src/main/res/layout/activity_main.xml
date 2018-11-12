@@ -2,6 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#fafafa"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <android.support.v7.widget.Toolbar
@@ -25,7 +26,7 @@
             android:layout_marginStart="15dp"
             android:layout_marginTop="10dp"
             android:layout_marginEnd="15dp"
-            android:background="@drawable/ripple_bg"
+            android:background="@drawable/word_card_ripple_bg"
             android:clickable="true"
             android:elevation="15dp"
             android:focusable="true"
@@ -37,8 +38,8 @@
                 android:id="@+id/progressBarHorizontal"
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:layout_height="2dp" />
 
             <TextView
@@ -46,7 +47,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="15dp"
                 android:layout_marginEnd="15dp"
                 android:gravity="center"
                 android:text="@string/hello"
@@ -67,9 +68,9 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="0.2dp"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="15dp"
             android:layout_marginTop="10dp"
-            android:layout_marginEnd="10dp"
+            android:layout_marginEnd="15dp"
             android:background="@android:color/darker_gray" />
 
         <LinearLayout
@@ -97,9 +98,9 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="0.2dp"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="15dp"
             android:layout_marginTop="10dp"
-            android:layout_marginEnd="10dp"
+            android:layout_marginEnd="15dp"
             android:background="@android:color/darker_gray" />
 
         <android.support.constraint.ConstraintLayout
@@ -152,9 +153,9 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="0.2dp"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="15dp"
             android:layout_marginTop="10dp"
-            android:layout_marginEnd="10dp"
+            android:layout_marginEnd="15dp"
             android:background="@android:color/darker_gray" />
 
         <ScrollView
@@ -168,7 +169,6 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Medium"
                 android:layout_marginStart="15dp"
                 android:layout_marginEnd="15dp"
-                android:layout_marginBottom="10dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 

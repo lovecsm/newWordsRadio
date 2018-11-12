@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.os.Build;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -95,7 +96,12 @@ public class FloatView extends View {
 
     public void show() {
         if (mContentView != null) {
-            wmParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+            //wmParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+                wmParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+            } else {
+                wmParams.type =  WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+            }
             wmParams.format = PixelFormat.RGBA_8888;
             wmParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
             wmParams.alpha = 0.6f;
