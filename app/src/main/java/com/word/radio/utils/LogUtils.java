@@ -4,7 +4,7 @@ import android.util.Log;
 
 public class LogUtils {
 
-    public static boolean isDebug = false;
+    private static final boolean isDebug = false;
 
     private final static String APP_TAG = "WordRadio";
 

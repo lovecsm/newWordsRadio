@@ -1,19 +1,16 @@
 package com.word.radio.newradio;
 
 import android.content.Context;
-import android.util.Log;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-public class ReadFile {
-    public static String readAssetsFile(Context context, String fileName) {
+class ReadFile {
+    static String readAssetsFile(Context context, String fileName) {
         try {
             //Return an AssetManager instance for your application's package
             InputStream is = context.getAssets().open("words/" + fileName + ".wds");
@@ -23,8 +20,7 @@ public class ReadFile {
             is.read(buffer);
             is.close();
             // Convert the buffer into a string.
-            String text = new String(buffer, "utf-8");
-            return text;
+            return new String(buffer, "utf-8");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -34,7 +30,7 @@ public class ReadFile {
     /**
      * 解压assets的zip压缩文件到指定目录
      */
-    public static void unZip(Context context, String assetName, String outputDirectory, boolean isReWrite) throws IOException {
+    static void unZip(Context context, String assetName, String outputDirectory, boolean isReWrite) throws IOException {
         // 创建解压目标目录
         File file = new File(outputDirectory);
         // 如果目标目录不存在，则创建
@@ -49,7 +45,7 @@ public class ReadFile {
         // 使用1Mbuffer
         byte[] buffer = new byte[1024 * 1024];
         // 解压时字节计数
-        int count = 0;
+        int count;
         // 如果进入点为空说明已经遍历完所有压缩包中文件和目录
         while (zipEntry != null) {
             // 如果是一个目录
@@ -65,11 +61,14 @@ public class ReadFile {
                 // 文件需要覆盖或者文件不存在，则解压文件
                 if (isReWrite || !file.exists()) {
                     file.createNewFile();
-                    FileOutputStream fileOutputStream = new FileOutputStream(file);
-                    while ((count = zipInputStream.read(buffer)) > 0) {
-                        fileOutputStream.write(buffer, 0, count);
+                    try (FileOutputStream fileOutputStream = new FileOutputStream(file)) {
+                        while ((count = zipInputStream.read(buffer)) > 0) {
+                            fileOutputStream.write(buffer, 0, count);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    fileOutputStream.close();
+
                 }
             }
             // 定位到下一个文件入口
@@ -86,8 +85,8 @@ public class ReadFile {
             return;
         }
         File[] files = path.listFiles();
-        for (int i = 0; i < files.length; i++) {
-            deleteAllFilesOfDir(files[i]);
+        for (File file : files) {
+            deleteAllFilesOfDir(file);
         }
         path.delete();
     }

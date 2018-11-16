@@ -51,7 +51,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -89,11 +88,11 @@ public class MainActivity extends AppCompatActivity {
 
     // 单词相关
     private String words;
-    private Pattern p = Pattern.compile("\\d.*?\\t(.+?)：(.*)");  //匹配单词和解释
+    private final Pattern p = Pattern.compile("\\d.*?\\t(.+?)：(.*)");  //匹配单词和解释
     private Matcher m;
     private int selectedNum = 0;
     @SuppressLint("UseSparseArrays")
-    private Map<Integer, String> wordsHashMap = new HashMap<>();
+    private final Map<Integer, String> wordsHashMap = new HashMap<>();
     private int allWordNum = 0, targetLocation = 0;
 
     private MediaPlayer mediaPlayer;
@@ -107,11 +106,11 @@ public class MainActivity extends AppCompatActivity {
     private SharedPreferences.Editor editor = null;
     private boolean repeat;
     // 讯飞TTS
-    private static String TAG = MainActivity.class.getSimpleName();
+    private static final String TAG = MainActivity.class.getSimpleName();
     // 语音合成对象
     private SpeechSynthesizer mTts;
     // 引擎类型
-    private String mEngineType;
+    private final String mEngineType;
     // 云端发音人名称列表
     private String[] mCloudVoicersEntries;
     private String[] mCloudVoicersValue;
@@ -120,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
     final private String VOICE_VOL;  // 音量
     final private String VOICE_TONE; // 音调
     final private String VOICE_SPEED;// 语速
+
     {
         mEngineType = SpeechConstant.TYPE_CLOUD;
         VOICE_VOL = "85";
@@ -352,6 +352,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 try {
+                    // 让UI加载完善再进行弹窗模糊
                     Thread.sleep(100);
                     if (Build.VERSION.SDK_INT > 21) {
                         runOnUiThread(new Runnable() {
@@ -377,8 +378,9 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 加载框
+     * @param id 作为标题的string资源的id
      */
-    public void buildProgressDialog(final int id) {
+    private void buildProgressDialog(final int id) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -398,7 +400,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 取消加载框
      */
-    public void cancelProgressDialog() {
+    private void cancelProgressDialog() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -550,7 +552,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 初始化监听。
      */
-    private InitListener mTtsInitListener = new InitListener() {
+    private final InitListener mTtsInitListener = new InitListener() {
         @Override
         public void onInit(int code) {
             if (code != ErrorCode.SUCCESS) {
@@ -562,7 +564,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 合成回调监听。
      */
-    private SynthesizerListener mTtsListener = new SynthesizerListener() {
+    private final SynthesizerListener mTtsListener = new SynthesizerListener() {
 
         @Override
         public void onSpeakBegin() {
@@ -619,7 +621,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initSpinner() {
         // 数据源
-        String[] array = {"part 1", "part 2", "part 3", "part 4", "part 5", "part 6", "part 7", "part 8", "part 9", "part 10", "part 11",
+        final String[] array = {"part 1", "part 2", "part 3", "part 4", "part 5", "part 6", "part 7", "part 8", "part 9", "part 10", "part 11",
                 "part 12", "part 13", "part 14", "part 15", "part 16", "part 17", "part 18", "part 19", "part 20", "part 21", "part 22", "part 23",
                 "part 24", "part 25", "part 26", "part 27", "part 28", "part 29", "part 30", "part 31", "part 32", "part 33", "part 34", "part 35"};
 
@@ -629,113 +631,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view,
                                        int position, long id) {
-                switch (position) {
-                    case 0:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_1");
-                        break;
-                    case 1:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_2");
-                        break;
-                    case 2:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_3");
-                        break;
-                    case 3:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_4");
-                        break;
-                    case 4:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_5");
-                        break;
-                    case 5:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_6");
-                        break;
-                    case 6:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_7");
-                        break;
-                    case 7:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_8");
-                        break;
-                    case 8:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_9");
-                        break;
-                    case 9:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_10");
-                        break;
-                    case 10:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_11");
-                        break;
-                    case 11:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_12");
-                        break;
-                    case 12:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_13");
-                        break;
-                    case 13:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_14");
-                        break;
-                    case 14:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_15");
-                        break;
-                    case 15:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_16");
-                        break;
-                    case 16:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_17");
-                        break;
-                    case 17:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_18");
-                        break;
-                    case 18:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_19");
-                        break;
-                    case 19:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_20");
-                        break;
-                    case 20:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_21");
-                        break;
-                    case 21:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_22");
-                        break;
-                    case 22:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_23");
-                        break;
-                    case 23:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_24");
-                        break;
-                    case 24:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_25");
-                        break;
-                    case 25:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_26");
-                        break;
-                    case 26:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_27");
-                        break;
-                    case 27:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_28");
-                        break;
-                    case 28:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_29");
-                        break;
-                    case 29:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_30");
-                        break;
-                    case 30:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_31");
-                        break;
-                    case 31:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_32");
-                        break;
-                    case 32:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_33");
-                        break;
-                    case 33:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_34");
-                        break;
-                    case 34:
-                        words = ReadFile.readAssetsFile(getApplicationContext(), "part_35");
-                        break;
-                }
+                words = ReadFile.readAssetsFile(getApplicationContext(), array[position].replace(" ", "_"));
                 savedSpinnerPos = position;
                 m = p.matcher(words);
                 wordsHashMap.clear();
@@ -790,7 +686,7 @@ public class MainActivity extends AppCompatActivity {
         // 根据合成引擎设置相应参数
         if (mEngineType.equals(SpeechConstant.TYPE_CLOUD)) {
             mTts.setParameter(SpeechConstant.ENGINE_TYPE, SpeechConstant.TYPE_CLOUD);
-            //onevent回调接口实时返回音频流数据
+            //onEvent回调接口实时返回音频流数据
             //mTts.setParameter(SpeechConstant.TTS_DATA_NOTIFY, "1");
             // 设置在线合成发音人
             mTts.setParameter(SpeechConstant.VOICE_NAME, voicer);
@@ -870,9 +766,9 @@ public class MainActivity extends AppCompatActivity {
         } else if (repeat && reversed && targetLocation < allWordNum) {
             location = ++targetLocation;
         }
-        LogUtils.i("number is: ", location+"");
+        LogUtils.i("number is: ", location + "");
         String word = wordsHashMap.get(location);
-        if(word == null){
+        if (word == null) {
             return new String[]{"null", "null"};
         }
         final String mWord = word.split("\\|")[0];
@@ -898,74 +794,61 @@ public class MainActivity extends AppCompatActivity {
      * 播放下一个单词
      */
     private void playNextWord() {
-        if (pause) { return; }
+        if (pause) {
+            return;
+        }
         if (!isPlaying) {
             isPlaying = true;
             speechButton.setText(R.string.pause);
         }
-        if(!pause)
+        if (!pause)
             speechButton.setText(R.string.pause);
         updateProgress();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (!reversed) {
-                    if (targetLocation >= 0 && targetLocation < allWordNum) {
-                        content = getTargetWord(targetLocation++);
-                        String wordName = content[0];
-                        //LogUtils.e("content", wordName);
-                        if (wordName.equals("null")) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    showTip("获取单词出错");
-                                    speechButton.setText(R.string.begin);
-                                }
-                            });
-                        } else {
-                            //LogUtils.e("restart", pause + ":pause");
-                            if (!pause) play(wordName);
-                        }
-                    } else {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                LogUtils.i("targetLocation", targetLocation + "");
-                                showTip("播放完毕");
-                                isPlaying = false;
-                                pause = true;
-                                speechButton.setText(R.string.restart);
-                                if (autoRestart) {
-                                    targetLocation = 0;
-                                    buttonFunction();
-                                }
-                            }
-                        });
-                    }
+        if (!reversed) {
+            if (targetLocation >= 0 && targetLocation < allWordNum) {
+                content = getTargetWord(targetLocation++);
+                String wordName = content[0];
+                //LogUtils.e("content", wordName);
+                if (wordName.equals("null")) {
+                    showTip("获取单词出错");
+                    speechButton.setText(R.string.begin);
                 } else {
-                    if (targetLocation >= 0 && targetLocation <= allWordNum) {
-                        content = getTargetWord(targetLocation--);
-                        //LogUtils.e("content", content[0] + "\n" + content[1]);
-                        String wordName = content[0];
-                        if (!pause) play(wordName);
-                    } else {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                showTip("播放完毕");
-                                isPlaying = false;
-                                pause = true;
-                                speechButton.setText(R.string.restart);
-                                if (autoRestart) {
-                                    targetLocation = allWordNum - 1;
-                                    buttonFunction();
-                                }
-                            }
-                        });
-                    }
+                    //LogUtils.e("restart", pause + ":pause");
+                    if (!pause) play(wordName);
+                }
+            } else {
+                LogUtils.i("targetLocation", targetLocation + "");
+                showTip("播放完毕");
+                isPlaying = false;
+                pause = true;
+                speechButton.setText(R.string.restart);
+                if (autoRestart) {
+                    targetLocation = 0;
+                    buttonFunction();
                 }
             }
-        }).start();
+        } else {
+            if (targetLocation >= 0 && targetLocation <= allWordNum) {
+                content = getTargetWord(targetLocation--);
+                //LogUtils.e("content", content[0] + "\n" + content[1]);
+                String wordName = content[0];
+                if (!pause) play(wordName);
+            } else {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        showTip("播放完毕");
+                        isPlaying = false;
+                        pause = true;
+                        speechButton.setText(R.string.restart);
+                        if (autoRestart) {
+                            targetLocation = allWordNum - 1;
+                            buttonFunction();
+                        }
+                    }
+                });
+            }
+        }
     }
 
     private void updateProgress() {
@@ -977,7 +860,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void wordChangeAnim() {
-        if(!repeat) {
+        if (!repeat) {
             //单词卡片切换动画
             Animation changeAnim = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.move_left);
             currentWord.setVisibility(View.VISIBLE);
@@ -992,7 +875,7 @@ public class MainActivity extends AppCompatActivity {
      *
      * @param word 单词
      */
-    public void play(String word) {
+    private void play(String word) {
         if (mTts.isSpeaking()) {
             mTts.stopSpeaking();
         }
@@ -1003,16 +886,17 @@ public class MainActivity extends AppCompatActivity {
                 mediaPlayer = new MediaPlayer();
             //LogUtils.e("word", word);
             //朗读相关
-            File tempFile = new File(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
+            /*File tempFile = new File(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
             FileInputStream fis = new FileInputStream(tempFile);
-            mediaPlayer.setDataSource(fis.getFD());
+            mediaPlayer.setDataSource(fis.getFD());*/
+            mediaPlayer.setDataSource(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mediaPlayer.prepare();//同步的准备方法。
             //mediaPlayer.prepareAsync();//异步的准备
             mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
-                    if(pause) {
+                    if (pause) {
                         mediaPlayer.reset();
                         count = 0;
                     } else {
@@ -1032,7 +916,7 @@ public class MainActivity extends AppCompatActivity {
                         mediaPlayer.reset();
                         if (needPlayChinese && !pause) {
                             playByTts();
-                        } else if(!pause) {
+                        } else if (!pause) {
                             playNextWord();
                         }
                     }
@@ -1064,13 +948,13 @@ public class MainActivity extends AppCompatActivity {
      * 继续播放当前单词
      */
     private void continuePlay() {
-            if (!reversed) {
-                targetLocation--;
-            } else {
-                targetLocation++;
-            }
+        if (!reversed) {
+            targetLocation--;
+        } else {
+            targetLocation++;
+        }
         pause = false;
-            playNextWord();
+        playNextWord();
     }
 
     public void repeatPlay(View v) {
@@ -1197,7 +1081,7 @@ public class MainActivity extends AppCompatActivity {
      * 双击返回键退出
      *
      * @param keyCode 按键码
-     * @param event 事件
+     * @param event   事件
      * @return 布尔类型
      */
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -1231,7 +1115,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 通知栏通知
      */
-    public void showNotification(Context context, String title, String msg) {
+    private void showNotification(Context context, String title, String msg) {
 
         Intent previousIntent = new Intent("previous");
         Intent middleIntent = new Intent("ok");
@@ -1333,13 +1217,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            NotificationUtil.cancelNotification(getApplicationContext(), "0",
-                    getString(R.string.notify_channelName));
+            NotificationUtil.cancelNotificationHigh();
         } else {
-            NotificationUtil.cancelNotification(getApplicationContext());
+            NotificationUtil.cancelNotification();
         }
         if (mediaPlayer != null) {
             mediaPlayer.release();
+            mediaPlayer = null;
         }
         if (mFloatView != null) {
             if (mFloatView.isShow())
@@ -1356,12 +1240,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         super.onDestroy();
+        System.exit(0);
     }
 
     private class HeadSetReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            LogUtils.i("bluetoothReceiver", action);
             if (BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
                 BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
                 if (BluetoothProfile.STATE_DISCONNECTED == adapter.getProfileConnectionState(BluetoothProfile.HEADSET) && isPlaying && !pause) {
@@ -1426,6 +1312,8 @@ public class MainActivity extends AppCompatActivity {
                 case "next":
                     next(getCurrentFocus());
                     LogUtils.i("MediaButtonReceiverMain", "NextMain");
+                    break;
+                default:
                     break;
             }
         }

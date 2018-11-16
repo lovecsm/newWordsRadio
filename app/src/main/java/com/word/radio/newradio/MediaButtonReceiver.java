@@ -9,13 +9,12 @@ import com.word.radio.utils.LogUtils;
 
 public class MediaButtonReceiver extends BroadcastReceiver {
 
-    private static String TAG = "MediaButtonReceiver";
-
     @Override
     public void onReceive(Context context, Intent intent) {
 
         // 获得Action
         String intentAction = intent.getAction();
+        LogUtils.e("intentAction", intentAction);
         // 获得KeyEvent对象
         KeyEvent keyEvent = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
         // 按下 / 松开 按钮
@@ -42,14 +41,15 @@ public class MediaButtonReceiver extends BroadcastReceiver {
             if (KeyEvent.KEYCODE_HEADSETHOOK == keyCode || 127 == keyCode || 126 == keyCode) {
                 mySendBroadcast(context, "ok");
             }
+            String tag = "MediaButtonReceiver";
             if (KeyEvent.KEYCODE_MEDIA_PREVIOUS == keyCode) {
                 // previous
-                LogUtils.i(TAG, "previous play");
+                LogUtils.i(tag, "previous play");
                 mySendBroadcast(context, "previous");
             }
             if (KeyEvent.KEYCODE_MEDIA_NEXT == keyCode) {
                 // next
-                LogUtils.i(TAG, "next play");
+                LogUtils.i(tag, "next play");
                 mySendBroadcast(context, "next");
             }
             if (KeyEvent.KEYCODE_MEDIA_STOP == keyCode) {

@@ -15,12 +15,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class FloatView extends View {
-    private final static String TAG = "FloatView";
 
-    private Context mContext;
-    private WindowManager wm;
+    private final Context mContext;
+    private final WindowManager wm;
     private static WindowManager.LayoutParams wmParams;
-    public LinearLayout mContentView;
+    private LinearLayout mContentView;
     private float mRelativeX;
     private float mRelativeY;
     private float mScreenX;
@@ -39,9 +38,9 @@ public class FloatView extends View {
 
 
     @SuppressLint("ClickableViewAccessibility")
-    public void setLayout(int layout_id) {
+    public void setLayout(int layoutId) {
 
-        mContentView = (LinearLayout) LayoutInflater.from(mContext).inflate(layout_id, null);
+        mContentView = (LinearLayout) LayoutInflater.from(mContext).inflate(layoutId, null);
         textView = new TextView(mContentView.getContext());
 
         textView.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -53,7 +52,7 @@ public class FloatView extends View {
         reLayoutParams.setMargins(8, 2, 8, 2);
         textView.setPadding(8, 2, 8, 2);
         textView.setTextColor(Color.BLACK);
-        textView.setText(mContext.getString(R.string.hello) + "  " + mContext.getString(R.string.world));
+        textView.setText(String.format("%s  %s", mContext.getString(R.string.hello), mContext.getString(R.string.world)));
         mContentView.addView(textView, reLayoutParams);
 
 
@@ -72,13 +71,14 @@ public class FloatView extends View {
                         break;
                     case MotionEvent.ACTION_UP:
                         if (abs(event.getX() - mRelativeX) > 1 || abs(event.getY() - mRelativeY) > 1)
-                            ;
-                            //updateViewPosition();
+                            updateViewPosition();
                         else {
                             Intent it = new Intent("ok");
                             mContext.sendBroadcast(it);
                         }
                         mRelativeX = mRelativeY = 0;
+                        break;
+                    default:
                         break;
                 }
                 return true;
