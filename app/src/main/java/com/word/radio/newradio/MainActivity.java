@@ -2,6 +2,7 @@ package com.word.radio.newradio;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Dialog;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -27,6 +28,7 @@ import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicBlur;
+import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -37,6 +39,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.Animation;
@@ -45,6 +48,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.RemoteViews;
@@ -464,7 +468,7 @@ public class MainActivity extends AppCompatActivity {
         return bmp;
     }
 
-    private void setScreenBgLight(ProgressDialog dialog) {
+    private void setScreenBgLight(Dialog dialog) {
         Window window = dialog.getWindow();
         WindowManager.LayoutParams lp;
         if (window != null) {
@@ -491,7 +495,7 @@ public class MainActivity extends AppCompatActivity {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    for (int i = 0; i < 256; i += 5) {
+                    for (int i = 0; i <= 255; i += 5) {
                         refreshUI(i);//在UI线程刷新视图
                         try {
                             Thread.sleep(6);
@@ -505,10 +509,10 @@ public class MainActivity extends AppCompatActivity {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    for (int i = 255; i >= 0; i -= 5) {
+                    for (int i = 255; i >= 0; i -= 1) {
                         refreshUI(i);//在UI线程刷新视图
                         try {
-                            Thread.sleep(6);
+                            Thread.sleep(1);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -567,6 +571,43 @@ public class MainActivity extends AppCompatActivity {
      * 发音人选择。
      */
     private void showPersonSelectDialog() {
+        handleBlur();
+        final BottomSheetDialog bsd = new BottomSheetDialog(this);
+        setScreenBgLight(bsd);
+        LinearLayout layout = new LinearLayout(this);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(15, 15, 15, 15);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setLayoutParams(params);
+        int childIndex;
+        for (childIndex = 0; childIndex < mCloudVoicersEntries.length; childIndex++) {
+            layout.addView(new TextView(this), childIndex);
+            final TextView tv = (TextView) layout.getChildAt(childIndex);
+            tv.setText(mCloudVoicersEntries[childIndex]);
+            tv.setTextSize(25f);
+            tv.setLayoutParams(params);
+            final int finalChildIndex = childIndex;
+            tv.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    voicer = mCloudVoicersValue[finalChildIndex];
+                    selectedNum = finalChildIndex;
+                    hideBlur();
+                    bsd.dismiss();
+                    showTip(getString(R.string.operate_succeed));
+                }
+            });
+        }
+        bsd.setContentView(layout);
+        bsd.setCancelable(true);
+        bsd.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                hideBlur();
+            }
+        });
+        bsd.show();
+        /*
         new AlertDialog.Builder(this).setTitle("发音人选择")
                 .setSingleChoiceItems(mCloudVoicersEntries, // 单选框有几项,各是什么名字
                         selectedNum, // 默认的选项
@@ -577,7 +618,7 @@ public class MainActivity extends AppCompatActivity {
                                 selectedNum = which;
                                 dialog.dismiss();
                             }
-                        }).show();
+                        }).show();*/
     }
 
     /**
