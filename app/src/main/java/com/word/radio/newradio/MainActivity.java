@@ -13,6 +13,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -35,6 +36,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.Animation;
@@ -44,6 +46,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.RemoteViews;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
@@ -51,6 +54,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -72,6 +76,7 @@ import com.word.radio.utils.NotificationUtil;
 public class MainActivity extends AppCompatActivity {
 
     // UI 相关
+    private View rootView;
     private TextView currentWord, currentChinese, allWordTextView;
     private Spinner spinner;
     private Button speechButton;
@@ -279,6 +284,7 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setFitsSystemWindows(true);
+        rootView = findViewById(R.id.main_root);
         currentWord = findViewById(R.id.current_word);
         currentChinese = findViewById(R.id.current_chinese);
         allWordTextView = findViewById(R.id.allWords);
@@ -347,21 +353,49 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
+    private boolean hasNavBar(Context context) {
+        boolean hasNavigationBar = false;
+        Resources rs = context.getResources();
+        int id = rs.getIdentifier("config_showNavigationBar", "bool", "android");
+        if (id > 0) {
+            hasNavigationBar = rs.getBoolean(id);
+        }
+        try {
+            Class systemPropertiesClass = Class.forName("android.os.SystemProperties");
+            Method m = systemPropertiesClass.getMethod("get", String.class);
+            String navBarOverride = (String) m.invoke(systemPropertiesClass, "qemu.hw.mainkeys");
+            if ("1".equals(navBarOverride)) {
+                hasNavigationBar = false;
+            } else if ("0".equals(navBarOverride)) {
+                hasNavigationBar = true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return hasNavigationBar;
+    }
+
+    private int getNavBarHeight(Context ct) {
+        boolean hasMenuKey = ViewConfiguration.get(ct).hasPermanentMenuKey();
+        int resourceId = ct.getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+        if (resourceId > 0 && !hasMenuKey) {
+            return ct.getResources().getDimensionPixelSize(resourceId);
+        }
+        return 0;
+    }
+
     private void initMp3() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    // 让UI加载完善再进行弹窗模糊
-                    Thread.sleep(100);
-                    if (Build.VERSION.SDK_INT > 21) {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                handleBlur();
-                            }
-                        });
-                    }
+                    // 在UI线程进行弹窗背景模糊
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            handleBlur();
+                        }
+                    });
                     buildProgressDialog(R.string.loading);
                     ReadFile.unZip(MainActivity.this, "wordAudios.zip", getExternalCacheDir() + "/wordAudios", true);
                     cancelProgressDialog();
@@ -418,6 +452,10 @@ public class MainActivity extends AppCompatActivity {
         activity.getWindow().getDecorView().destroyDrawingCache();  //先清理屏幕绘制缓存(重要)
         activity.getWindow().getDecorView().setDrawingCacheEnabled(true);
         Bitmap bmp = activity.getWindow().getDecorView().getDrawingCache();
+        //如果有导航栏则将截图剪切一下去掉导航栏
+        if (hasNavBar(activity)) {
+            bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight() - getNavBarHeight(activity));
+        }
         //获取原图尺寸
         originalW = bmp.getWidth();
         originalH = bmp.getHeight();
@@ -431,7 +469,7 @@ public class MainActivity extends AppCompatActivity {
         WindowManager.LayoutParams lp;
         if (window != null) {
             lp = window.getAttributes();
-            lp.dimAmount = 0.1f;
+            lp.dimAmount = 0.25f;
             window.setAttributes(lp);
         }
     }
@@ -671,7 +709,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 //Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
-                Snackbar.make(MainActivity.this.allWordTextView, str, Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(rootView, str, Snackbar.LENGTH_SHORT).show();
             }
         });
 
