@@ -99,7 +99,6 @@ public class MainActivity extends AppCompatActivity {
     private String words;
     private final Pattern p = Pattern.compile("\\d.*?\\t(.+?)：(.*)");  //匹配单词和解释
     private Matcher m;
-    private int selectedNum = 0;
     @SuppressLint("UseSparseArrays")
     private final Map<Integer, String> wordsHashMap = new HashMap<>();
     private int allWordNum = 0, targetLocation = 0;
@@ -576,7 +575,7 @@ public class MainActivity extends AppCompatActivity {
         setScreenBgLight(bsd);
         LinearLayout layout = new LinearLayout(this);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.setMargins(15, 15, 15, 15);
+        params.setMargins(15, 15, 15, 20);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setLayoutParams(params);
         int childIndex;
@@ -591,7 +590,6 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     voicer = mCloudVoicersValue[finalChildIndex];
-                    selectedNum = finalChildIndex;
                     hideBlur();
                     bsd.dismiss();
                     showTip(getString(R.string.operate_succeed));
