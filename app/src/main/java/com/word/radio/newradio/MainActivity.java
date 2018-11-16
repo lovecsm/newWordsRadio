@@ -61,6 +61,7 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -472,7 +473,7 @@ public class MainActivity extends AppCompatActivity {
         WindowManager.LayoutParams lp;
         if (window != null) {
             lp = window.getAttributes();
-            lp.dimAmount = 0.25f;
+            lp.dimAmount = 0.15f;
             window.setAttributes(lp);
         }
     }
@@ -572,7 +573,7 @@ public class MainActivity extends AppCompatActivity {
     private void showPersonSelectDialog() {
         handleBlur();
         final BottomSheetDialog bsd = new BottomSheetDialog(this);
-        setScreenBgLight(bsd);
+
         LinearLayout layout = new LinearLayout(this);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         params.setMargins(15, 15, 15, 20);
@@ -605,6 +606,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         bsd.show();
+        setScreenBgLight(bsd);
         /*
         new AlertDialog.Builder(this).setTitle("发音人选择")
                 .setSingleChoiceItems(mCloudVoicersEntries, // 单选框有几项,各是什么名字
