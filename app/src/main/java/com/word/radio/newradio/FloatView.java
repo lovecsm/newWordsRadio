@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -39,22 +40,24 @@ public class FloatView extends View {
 
     @SuppressLint("ClickableViewAccessibility")
     public void setLayout(int layoutId) {
-
+        Typeface typeface = Typeface.createFromAsset(mContext.getAssets(), "font/song.ttf");
         mContentView = (LinearLayout) LayoutInflater.from(mContext).inflate(layoutId, null);
         textView = new TextView(mContentView.getContext());
 
         textView.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
         LinearLayout.LayoutParams reLayoutParams =
-                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
 
         mContentView.removeView(textView);
         reLayoutParams.setMargins(8, 2, 8, 2);
         textView.setPadding(8, 2, 8, 2);
         textView.setTextColor(Color.BLACK);
-        textView.setText(String.format("%s  %s", mContext.getString(R.string.hello), mContext.getString(R.string.world)));
+        textView.setText(String.format("%s  %s", mContext.getString(R.string.hello),
+                mContext.getString(R.string.world)));
+        textView.setTypeface(typeface);
         mContentView.addView(textView, reLayoutParams);
-
 
         mContentView.setOnTouchListener(new OnTouchListener() {
             public boolean onTouch(View v, MotionEvent event) {
@@ -104,7 +107,7 @@ public class FloatView extends View {
             }
             wmParams.format = PixelFormat.RGBA_8888;
             wmParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-            wmParams.alpha = 0.6f;
+            wmParams.alpha = 0.75f;
             wmParams.gravity = Gravity.START | Gravity.TOP;
             wmParams.x = getWidth() / 3;
             wmParams.y = 0;

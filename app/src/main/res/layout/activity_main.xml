@@ -10,7 +10,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/song"
+
         android:background="?attr/colorPrimary"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
@@ -51,7 +51,7 @@
                 android:layout_marginStart="15dp"
                 android:layout_marginTop="15dp"
                 android:layout_marginEnd="15dp"
-                android:fontFamily="@font/song"
+
                 android:gravity="center"
                 android:text="@string/hello"
                 android:textColor="@android:color/black"
@@ -61,7 +61,7 @@
                 android:id="@+id/current_chinese"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/song"
+
                 android:layout_margin="15dp"
                 android:gravity="center"
                 android:text="@string/world"
@@ -86,7 +86,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/song"
+                android:id="@+id/select_part"
                 android:layout_gravity="center_vertical"
                 android:layout_marginStart="40dp"
                 android:text="@string/choose_a_part"
@@ -94,7 +94,7 @@
 
             <Spinner
                 android:id="@+id/spinner"
-                android:fontFamily="@font/song"
+
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
@@ -120,7 +120,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="start"
-                android:fontFamily="@font/song"
+
                 android:background="@drawable/ripple_bg"
                 android:text="@string/previous"
                 android:onClick="previous"
@@ -134,7 +134,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:fontFamily="@font/song"
+
                 android:background="@drawable/ripple_bg"
                 android:text="@string/next"
                 android:onClick="next"
@@ -148,7 +148,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
-                android:fontFamily="@font/song"
+
                 android:background="@drawable/ripple_bg"
                 android:text="@string/begin"
                 android:onClick="speech"
@@ -178,7 +178,7 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Medium"
                 android:layout_marginStart="15dp"
                 android:layout_marginEnd="15dp"
-                android:fontFamily="@font/song"
+
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
