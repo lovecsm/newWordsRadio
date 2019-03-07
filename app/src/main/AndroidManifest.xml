@@ -9,19 +9,20 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
-        android:allowBackup="false"
         android:name="com.word.radio.ifly.SpeechApp"
-        android:persistent="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:persistent="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".MainActivity"
+        <activity
+            android:name=".MainActivity"
             android:icon="@mipmap/ic_launcher"
+            android:launchMode="singleTop"
             android:roundIcon="@mipmap/ic_launcher_round"
-            android:launchMode="singleTask"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,6 +30,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <receiver
             android:name=".MediaButtonReceiver"
             android:exported="true">
@@ -40,10 +42,26 @@
         <!-- 移动统计分析 -->
         <meta-data
             android:name="IFLYTEK_APPKEY"
-            android:value="'5b9dcecc'" />
+            android:value="&apos;5b9dcecc&apos;" />
         <meta-data
             android:name="IFLYTEK_CHANNEL"
             android:value="Android_Demo" />
+
+        <service
+            android:name="com.word.radio.time.TimeService"
+            android:enabled="true"
+            android:exported="true"
+            tools:ignore="ExportedService" />
+        <service
+            android:name="com.word.radio.time.SendNotificationIS"
+            android:enabled="true"
+            android:exported="false"
+            tools:ignore="ExportedService" />
+        <service
+            android:name="com.word.radio.time.FinishVoiceIS"
+            android:enabled="true"
+            android:exported="false"
+            tools:ignore="ExportedService" />
     </application>
 
 </manifest>

@@ -24,9 +24,14 @@
     <string name="init_failed">加载数据失败，请尝试清除应用数据释放空间后再试</string>
     <string name="notify_channelName">单词详情</string>
     <string name="operate_succeed">操作成功</string>
+    <string name="remind_listen_word_channelName">背单词提醒</string>
+    <string name="remind_listen_word_title">到听单词的时间啦~点我点我~</string>
+    <string name="remind_listen_word_msg">每天听几次单词，提高听力水平同时加强对单词的记忆</string>
     <!--TTS合成相关-->
     <string name="app_id">5b9dcecc</string>
     <string name="choose_voice">选择发音人</string>
+    <string name="auto_remind">自动提醒</string>
+    <string name="auto_exit">定时关闭</string>
     <string-array name="voicer_cloud_entries">
         <item>小琪—女青、普通话</item>
         <item>小宇—男青、普通话</item>

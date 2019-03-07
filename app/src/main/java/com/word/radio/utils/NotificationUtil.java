@@ -22,7 +22,7 @@ public class NotificationUtil {
     private static NotificationManager manager;
 
     /**
-     * 针对API版本较低的创建通知方法
+     * 针对API版本较低的创建自定义通知方法
      *
      * @param context     上下文
      * @param title       通知标题
@@ -37,7 +37,7 @@ public class NotificationUtil {
         notification = new NotificationCompat.Builder(context)
                 .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setTicker("通知来了")
+                .setTicker("正在播放的单词")
                 .setContentTitle(title)
                 .setContentText(msg)
                 .setWhen(System.currentTimeMillis())
@@ -52,7 +52,35 @@ public class NotificationUtil {
     }
 
     /**
-     * 针对API大于安卓O的创建通知方法
+     * 针对API版本较低的创建默认通知方法
+     *
+     * @param context     上下文
+     * @param title       通知标题
+     * @param msg         通知消息
+     */
+    public static void createNotification(Context context, String title, String msg) {
+        // 对API等级限制，低于安卓O的无法使用该方法
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return;
+        }
+        notification = new NotificationCompat.Builder(context)
+                .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setTicker("提醒听单词")
+                .setContentTitle(title)
+                .setContentText(msg)
+                .setWhen(System.currentTimeMillis())
+                .setPriority(Notification.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setOngoing(true)
+                .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
+                .build();
+        notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.notify(0, notification);
+    }
+
+    /**
+     * 针对API大于安卓O的创建自定义通知方法
      * @param context 上下文
      * @param title 通知标题
      * @param msg 通知消息
@@ -74,6 +102,35 @@ public class NotificationUtil {
                     .setAutoCancel(false)
                     .setOngoing(true)
                     .setCustomContentView(remoteViews)
+                    .setChannelId(channelID)
+                    .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
+                    .build();
+            manager.notify(0, notification);
+        }
+    }
+
+    /**
+     * 针对API大于安卓O的创建默认通知方法
+     *
+     * @param context     上下文
+     * @param title       通知标题
+     * @param msg         通知消息
+     * @param channelID   通知渠道ID
+     * @param channelName 渠道名
+     */
+    public static void createNotification(Context context, String title, String msg, String channelID, String channelName) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(channelID, channelName, NotificationManager.IMPORTANCE_HIGH);
+            manager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+            manager.createNotificationChannel(channel);
+            notification = new Notification.Builder(context, channelID)
+                    .setWhen(System.currentTimeMillis())
+                    .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentText(msg)
+                    .setContentTitle(title)
+                    .setAutoCancel(true)
+                    .setOngoing(true)
                     .setChannelId(channelID)
                     .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
                     .build();

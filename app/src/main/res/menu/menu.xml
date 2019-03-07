@@ -29,4 +29,12 @@
         android:id="@+id/chooseVoice"
         android:title="@string/choose_voice"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/autoRemind"
+        android:title="@string/auto_remind"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/autoExit"
+        android:title="@string/auto_exit"
+        app:showAsAction="never" />
 </menu>

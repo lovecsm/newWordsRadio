@@ -2,9 +2,11 @@ package com.word.radio.newradio;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.Dialog;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.app.TimePickerDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
@@ -31,9 +33,9 @@ import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicBlur;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.Snackbar;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -51,21 +53,12 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
 import android.widget.RemoteViews;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
-
-import java.io.File;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 
 import com.iflytek.cloud.ErrorCode;
 import com.iflytek.cloud.InitListener;
@@ -75,9 +68,20 @@ import com.iflytek.cloud.SpeechEvent;
 import com.iflytek.cloud.SpeechSynthesizer;
 import com.iflytek.cloud.SynthesizerListener;
 import com.iflytek.sunflower.FlowerCollector;
-
+import com.word.radio.time.FinishVoiceIS;
+import com.word.radio.time.TimeService;
 import com.word.radio.utils.LogUtils;
 import com.word.radio.utils.NotificationUtil;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -87,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
     private Spinner spinner;
     private Button speechButton;
     private ProgressBar mProgressBarHorizontal;
-    private MenuItem menuItem, menuItem1, menuItem2, menuItem3, menuItem4;
+    private MenuItem menuItem, menuItem1, menuItem2, menuItem3, menuItem4, menuItem5, menuItem6;
     private boolean isExit, openFloatWindow;
     private FloatView mFloatView;
     private ProgressDialog progressDialog;
@@ -142,6 +146,11 @@ public class MainActivity extends AppCompatActivity {
     private MyBroadcastReceiver myBroadcastReceiver;
     private HeadSetReceiver headSetReceiver;
     private int savedSpinnerPos, savedWordPos;
+
+    // 定时相关
+    private Calendar calendar;
+    private AlarmManager manager;
+    private PendingIntent pi;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -244,6 +253,14 @@ public class MainActivity extends AppCompatActivity {
             case R.id.chooseVoice:
                 showPersonSelectDialog();
                 break;
+            case R.id.autoRemind:
+                // 自动提醒背单词
+                selectRemindTime();
+                break;
+            case R.id.autoExit:
+                // 自动停止播放
+                selectExitTime();
+                break;
             default:
                 break;
         }
@@ -260,6 +277,8 @@ public class MainActivity extends AppCompatActivity {
         menuItem2 = menu.findItem(R.id.reversed);   // 倒序播放
         menuItem3 = menu.findItem(R.id.autoRestart);// 自动重播
         menuItem4 = menu.findItem(R.id.floatWindow);// 悬浮窗开关
+        menuItem5 = menu.findItem(R.id.autoRemind); // 自动提醒背单词
+        menuItem6 = menu.findItem(R.id.autoExit);   // 定时关闭
         // 恢复数据时看是否需要重复播放
         if (reversed)
             menuItem2.setTitle(R.string.not_reversed);
@@ -328,6 +347,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         };
+
+        // 初始化时间选择器
+        calendar = Calendar.getInstance();
     }
 
     private void saveData() {
@@ -1172,6 +1194,101 @@ public class MainActivity extends AppCompatActivity {
         if (content != null)
             showNotification(getApplicationContext(), content[0], content[1]);
 
+    }
+
+    /**
+     * 选择提醒背单词的时间
+     */
+    private void selectRemindTime() {
+
+        TimePickerDialog dialog = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
+            @Override
+            public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                String time;
+                if (hourOfDay < 10 && minute < 10) {
+                    time = "0" + hourOfDay + ":0" + minute;
+                } else if (minute < 10) {
+                    time = hourOfDay + ":0" + minute;
+                } else if (hourOfDay < 10) {
+                    time = "0" + hourOfDay + ":" + minute;
+                } else {
+                    time = hourOfDay + ":" + minute;
+                }
+                // 使用SharedPreferences保存用户自定义时间
+                SharedPreferences.Editor editor = getSharedPreferences("remind_time", Context.MODE_PRIVATE).edit();
+                editor.putString("time", time);
+                editor.apply();
+                Toast.makeText(getApplicationContext(), "将在每天的" + time + "提醒您听单词", Toast.LENGTH_SHORT).show();
+
+                // 发送广播结束LaunchService和TimeService
+                /*Intent stopLaunchService = new Intent("stopLaunchService");
+                sendBroadcast(stopLaunchService);*/
+                Intent stopTimeService = new Intent("stopTimeService");
+                sendBroadcast(stopTimeService);
+                // 启动后台服务
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(1000);
+                            Intent service = new Intent(getApplication(), TimeService.class);
+                            startService(service);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }).start();
+            }
+        },
+                calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE),
+                true);
+        dialog.show();
+    }
+
+    private void selectExitTime() {
+
+        manager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        // 创建PendingIntent对象和Intent,用来自动启动停止播放的IntentService
+        Intent finishIntent = new Intent(getApplicationContext(), FinishVoiceIS.class);
+        finishIntent.setAction(FinishVoiceIS.ACTION_FINISH);
+        pi = PendingIntent.getService(this, 0, finishIntent, 0);
+
+        TimePickerDialog dialog = new TimePickerDialog(MainActivity.this,
+                new TimePickerDialog.OnTimeSetListener() {
+                    @Override
+                    public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                        String customTime;
+                        if (hourOfDay < 10 && minute < 10) {
+                            customTime = "0" + hourOfDay + ":0" + minute;
+                        } else if (minute < 10) {
+                            customTime = hourOfDay + ":0" + minute;
+                        } else if (hourOfDay < 10) {
+                            customTime = "0" + hourOfDay + ":" + minute;
+                        } else {
+                            customTime = hourOfDay + ":" + minute;
+                        }
+                        long sleepTime;
+                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm", Locale.CHINA);
+                        long currentTimeMillis = System.currentTimeMillis();
+                        String currentTime = simpleDateFormat.format(currentTimeMillis);
+                        Log.i("LaunchService", "当前时间：" + currentTime);
+                        Log.i("LaunchService", "用户定义时间：" + customTime);
+                        sleepTime = TimeService.getSleepTime(currentTime, customTime);
+                        Log.i("TimeService", "时间服务后台进程已经设置好闹钟，" + sleepTime / 1000 / 3600 +
+                                "时" + sleepTime / 1000 % 3600 / 60 + "分" + sleepTime / 1000 % 3600 % 60 +
+                                "秒之后退出程序");
+
+                        sleepTime += currentTimeMillis;
+
+                        // 设置一个闹钟，直到sleepTime之时唤醒手机并执行pi以启动服务FinishApplicationIS退出程序
+                        manager.setExact(AlarmManager.RTC_WAKEUP, sleepTime, pi);
+
+                        Toast.makeText(getApplicationContext(), "将在" + customTime + "自动退出程序",
+                                Toast.LENGTH_SHORT).show();
+
+                    }
+                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true);
+        dialog.show();
     }
 
     /**
