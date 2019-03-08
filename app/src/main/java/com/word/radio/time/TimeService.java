@@ -10,9 +10,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.IBinder;
-import android.util.Log;
 
 import com.word.radio.newradio.R;
+import com.word.radio.utils.LogUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -26,7 +26,6 @@ public class TimeService extends Service {
     private TimeServiceBroadcastReceiver tsbr;
     private AlarmManager manager;
     private PendingIntent pi;
-    //private WakeLock wakeLock;
 
     public TimeService() {
     }
@@ -39,7 +38,7 @@ public class TimeService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.i("TimeService", "时间后台服务被创建。注册广播");
+        LogUtils.i("TimeService", "时间后台服务开始创建。注册广播");
         tsbr = new TimeServiceBroadcastReceiver();
         registerReceiver(tsbr, new IntentFilter("stopTimeService"));
         //服务启动广播接收器,使得广播接收器可以在程序退出后在后台继续执行,接收系统时间或锁屏事件变更广播事件
@@ -59,7 +58,7 @@ public class TimeService extends Service {
         // 设置通知标题
         sendNotIntent.putExtra(MSG_TITLE, getString(R.string.remind_listen_word_title));
         pi = PendingIntent.getService(TimeService.this, 0, sendNotIntent, 0);
-
+        LogUtils.i("TimeService", "时间后台服务创建完毕");
     }
 
     @Override
@@ -70,10 +69,10 @@ public class TimeService extends Service {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm", Locale.CHINA);
         long currentTimeMillis = System.currentTimeMillis();
         String currentTime = simpleDateFormat.format(currentTimeMillis);
-        Log.i("LaunchService", "当前时间：" + currentTime);
-        Log.i("LaunchService", "用户定义时间：" + customTime);
+        LogUtils.i("LaunchService", "当前时间：" + currentTime);
+        LogUtils.i("LaunchService", "用户定义时间：" + customTime);
         sleepTime = getSleepTime(currentTime, customTime != null ? customTime : "00:00");
-        Log.i("TimeService", "时间服务后台进程已经设置好闹钟，" + sleepTime / 1000 / 3600 + "时" +
+        LogUtils.i("TimeService", "时间服务后台进程已经设置好闹钟，" + sleepTime / 1000 / 3600 + "时" +
                 sleepTime / 1000 % 3600 / 60 + "分" + sleepTime / 1000 % 3600 % 60 + "秒之后启动SendNotificationIS");
 
         sleepTime += currentTimeMillis;
@@ -109,19 +108,18 @@ public class TimeService extends Service {
 
     @Override
     public void onDestroy() {
-        Log.i("TimeService", "TimeService后台进程和自身广播被销毁了。TimeChangeReceiver被销毁了。闹钟被销毁了。");
+        LogUtils.i("TimeService", "TimeService后台进程和自身广播被销毁了。TimeChangeReceiver被销毁了。闹钟被销毁了。");
         super.onDestroy();
         unregisterReceiver(receiver);
         unregisterReceiver(tsbr);
         manager.cancel(pi);
-        //wakeLock.release();
     }
 
     public class TimeServiceBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             TimeService.this.stopSelf();
-            Log.i("TimeService", "收到关闭TimeService的广播");
+            LogUtils.i("TimeService", "收到关闭TimeService的广播");
         }
     }
 }

@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import com.word.radio.newradio.R;
 import com.word.radio.utils.NotificationUtil;
 
 /**
@@ -57,8 +56,8 @@ public class SendNotificationIS extends IntentService {
      */
     private void handleActionSendMsg(String title, String msg) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationUtil.createNotification(this, title, msg, "1",
-                    getString(R.string.remind_listen_word_channelName));
+            NotificationUtil.createNotification(this, title, msg,
+                    NotificationUtil.REMIND_LISTEN_CHANNEL_ID);
         } else {
             NotificationUtil.createNotification(this, title, msg);
         }

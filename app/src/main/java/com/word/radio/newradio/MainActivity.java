@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.Dialog;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.app.TimePickerDialog;
@@ -35,7 +36,6 @@ import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -91,7 +91,11 @@ public class MainActivity extends AppCompatActivity {
     private Spinner spinner;
     private Button speechButton;
     private ProgressBar mProgressBarHorizontal;
-    private MenuItem menuItem, menuItem1, menuItem2, menuItem3, menuItem4, menuItem5, menuItem6;
+    private MenuItem menuItem;
+    private MenuItem menuItem1;
+    private MenuItem menuItem2;
+    private MenuItem menuItem3;
+    private MenuItem menuItem4;
     private boolean isExit, openFloatWindow;
     private FloatView mFloatView;
     private ProgressDialog progressDialog;
@@ -161,6 +165,7 @@ public class MainActivity extends AppCompatActivity {
         applyData();    //应用恢复出来的数据
         initSpeech();   //初始化发音引擎
         initBroadCast();//初始化线控广播接收器
+        initNotificationChannel();  // 初始化安卓8.0通知渠道
     }
 
     @Override
@@ -277,8 +282,6 @@ public class MainActivity extends AppCompatActivity {
         menuItem2 = menu.findItem(R.id.reversed);   // 倒序播放
         menuItem3 = menu.findItem(R.id.autoRestart);// 自动重播
         menuItem4 = menu.findItem(R.id.floatWindow);// 悬浮窗开关
-        menuItem5 = menu.findItem(R.id.autoRemind); // 自动提醒背单词
-        menuItem6 = menu.findItem(R.id.autoExit);   // 定时关闭
         // 恢复数据时看是否需要重复播放
         if (reversed)
             menuItem2.setTitle(R.string.not_reversed);
@@ -452,6 +455,18 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }).start();
+    }
+
+    private void initNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationUtil.createNotificationChannel(getApplicationContext(),
+                    NotificationUtil.WORD_DETAIL_CHANNEL_ID,
+                    NotificationUtil.WORD_DETAIL_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
+            NotificationUtil.createNotificationChannel(getApplicationContext(),
+                    NotificationUtil.REMIND_LISTEN_CHANNEL_ID,
+                    NotificationUtil.REMIND_LISTEN_WORD_CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_DEFAULT);
+        }
     }
 
     /**
@@ -1220,9 +1235,7 @@ public class MainActivity extends AppCompatActivity {
                 editor.apply();
                 Toast.makeText(getApplicationContext(), "将在每天的" + time + "提醒您听单词", Toast.LENGTH_SHORT).show();
 
-                // 发送广播结束LaunchService和TimeService
-                /*Intent stopLaunchService = new Intent("stopLaunchService");
-                sendBroadcast(stopLaunchService);*/
+                // 发送广播结束TimeService
                 Intent stopTimeService = new Intent("stopTimeService");
                 sendBroadcast(stopTimeService);
                 // 启动后台服务
@@ -1232,7 +1245,7 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             Thread.sleep(1000);
                             Intent service = new Intent(getApplication(), TimeService.class);
-                            startService(service);
+                            getApplication().startService(service);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -1271,19 +1284,19 @@ public class MainActivity extends AppCompatActivity {
                         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm", Locale.CHINA);
                         long currentTimeMillis = System.currentTimeMillis();
                         String currentTime = simpleDateFormat.format(currentTimeMillis);
-                        Log.i("LaunchService", "当前时间：" + currentTime);
-                        Log.i("LaunchService", "用户定义时间：" + customTime);
+                        LogUtils.i("LaunchService", "当前时间：" + currentTime);
+                        LogUtils.i("LaunchService", "用户定义时间：" + customTime);
                         sleepTime = TimeService.getSleepTime(currentTime, customTime);
-                        Log.i("TimeService", "时间服务后台进程已经设置好闹钟，" + sleepTime / 1000 / 3600 +
+                        LogUtils.i("TimeService", "时间服务后台进程已经设置好闹钟，" + sleepTime / 1000 / 3600 +
                                 "时" + sleepTime / 1000 % 3600 / 60 + "分" + sleepTime / 1000 % 3600 % 60 +
-                                "秒之后退出程序");
+                                "秒之后暂停");
 
                         sleepTime += currentTimeMillis;
 
                         // 设置一个闹钟，直到sleepTime之时唤醒手机并执行pi以启动服务FinishApplicationIS退出程序
                         manager.setExact(AlarmManager.RTC_WAKEUP, sleepTime, pi);
 
-                        Toast.makeText(getApplicationContext(), "将在" + customTime + "自动退出程序",
+                        Toast.makeText(getApplicationContext(), "好的主人~我将在" + customTime + "自动暂停",
                                 Toast.LENGTH_SHORT).show();
 
                     }
@@ -1355,8 +1368,8 @@ public class MainActivity extends AppCompatActivity {
 
         // 适配安卓8.0以下和以上的通知
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            NotificationUtil.getNotification(context, title, msg, remoteViews, "0",
-                    getString(R.string.notify_channelName));
+            NotificationUtil.getNotification(context, title, msg, remoteViews,
+                    NotificationUtil.WORD_DETAIL_CHANNEL_ID);
         } else {
             NotificationUtil.getNotification(context, title, msg, remoteViews);
         }

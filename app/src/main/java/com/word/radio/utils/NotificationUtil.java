@@ -17,9 +17,16 @@ import com.word.radio.newradio.R;
 import static android.content.Context.NOTIFICATION_SERVICE;
 
 public class NotificationUtil {
+
     private static Notification notification;
     private static NotificationManager notificationManager;
     private static NotificationManager manager;
+
+    /*通知渠道和渠道ID*/
+    public static final String WORD_DETAIL_CHANNEL_NAME = "单词详情";
+    public static final String WORD_DETAIL_CHANNEL_ID = "word_detail";
+    public static final String REMIND_LISTEN_WORD_CHANNEL_NAME = "提醒听单词";
+    public static final String REMIND_LISTEN_CHANNEL_ID = "remind_listen_words";
 
     /**
      * 针对API版本较低的创建自定义通知方法
@@ -71,6 +78,7 @@ public class NotificationUtil {
                 .setContentText(msg)
                 .setWhen(System.currentTimeMillis())
                 .setPriority(Notification.PRIORITY_HIGH)
+                .setDefaults(Notification.DEFAULT_ALL)
                 .setAutoCancel(true)
                 .setOngoing(true)
                 .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
@@ -86,13 +94,12 @@ public class NotificationUtil {
      * @param msg 通知消息
      * @param remoteViews 通知栏的remoteView
      * @param channelID 通知渠道ID
-     * @param channelName 渠道名
      */
-    public static void getNotification(Context context, String title, String msg, RemoteViews remoteViews, String channelID, String channelName) {
+    public static void getNotification(Context context, String title, String msg, RemoteViews remoteViews, String channelID) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(channelID, channelName, NotificationManager.IMPORTANCE_HIGH);
-            manager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
-            manager.createNotificationChannel(channel);
+            if (manager == null) {
+                manager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+            }
             notification = new Notification.Builder(context, channelID)
                     .setWhen(System.currentTimeMillis())
                     .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
@@ -116,13 +123,12 @@ public class NotificationUtil {
      * @param title       通知标题
      * @param msg         通知消息
      * @param channelID   通知渠道ID
-     * @param channelName 渠道名
      */
-    public static void createNotification(Context context, String title, String msg, String channelID, String channelName) {
+    public static void createNotification(Context context, String title, String msg, String channelID) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(channelID, channelName, NotificationManager.IMPORTANCE_HIGH);
-            manager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
-            manager.createNotificationChannel(channel);
+            if (manager == null) {
+                manager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
+            }
             notification = new Notification.Builder(context, channelID)
                     .setWhen(System.currentTimeMillis())
                     .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
@@ -131,6 +137,7 @@ public class NotificationUtil {
                     .setContentTitle(title)
                     .setAutoCancel(true)
                     .setOngoing(true)
+                    .setDefaults(Notification.DEFAULT_ALL)
                     .setChannelId(channelID)
                     .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
                     .build();
@@ -158,6 +165,18 @@ public class NotificationUtil {
         }
         notificationManager.cancel(0);
         destroy();
+    }
+
+    public static void createNotificationChannel(Context context, String channelId,
+                                                 String channelName, int importance) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(channelId, channelName, importance);
+            NotificationManager notificationManager = (NotificationManager) context.getSystemService(
+                    NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
     }
 
     private static void destroy() {
