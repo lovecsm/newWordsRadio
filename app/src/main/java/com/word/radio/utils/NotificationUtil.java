@@ -80,7 +80,7 @@ public class NotificationUtil {
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setDefaults(Notification.DEFAULT_ALL)
                 .setAutoCancel(true)
-                .setOngoing(true)
+                .setOngoing(false)
                 .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))
                 .build();
         notificationManager = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
@@ -136,7 +136,7 @@ public class NotificationUtil {
                     .setContentText(msg)
                     .setContentTitle(title)
                     .setAutoCancel(true)
-                    .setOngoing(true)
+                    .setOngoing(false)
                     .setDefaults(Notification.DEFAULT_ALL)
                     .setChannelId(channelID)
                     .setContentIntent(PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class), PendingIntent.FLAG_CANCEL_CURRENT))

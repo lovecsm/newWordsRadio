@@ -506,7 +506,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /*模糊背景加载*/
+    /**
+     * 模糊背景加载
+     */
     private Bitmap captureScreen(Activity activity) {
         activity.getWindow().getDecorView().destroyDrawingCache();  //先清理屏幕绘制缓存(重要)
         activity.getWindow().getDecorView().setDrawingCacheEnabled(true);
