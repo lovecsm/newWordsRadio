@@ -17,7 +17,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.media.AudioManager;
@@ -41,7 +40,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -52,6 +50,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RemoteViews;
 import android.widget.Spinner;
@@ -74,7 +73,6 @@ import com.word.radio.utils.LogUtils;
 import com.word.radio.utils.NotificationUtil;
 
 import java.io.File;
-import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -156,6 +154,9 @@ public class MainActivity extends AppCompatActivity {
     private Calendar calendar;
     private AlarmManager manager;
     private PendingIntent pi;
+
+    // 后台flag
+    private boolean inbg = false;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -401,37 +402,38 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private boolean hasNavBar(Context context) {
-        boolean hasNavigationBar = false;
-        Resources rs = context.getResources();
-        int id = rs.getIdentifier("config_showNavigationBar", "bool", "android");
-        if (id > 0) {
-            hasNavigationBar = rs.getBoolean(id);
-        }
-        try {
-            Class systemPropertiesClass = Class.forName("android.os.SystemProperties");
-            Method m = systemPropertiesClass.getMethod("get", String.class);
-            String navBarOverride = (String) m.invoke(systemPropertiesClass, "qemu.hw.mainkeys");
-            if ("1".equals(navBarOverride)) {
-                hasNavigationBar = false;
-            } else if ("0".equals(navBarOverride)) {
-                hasNavigationBar = true;
+    /*
+        private boolean hasNavBar(Context context) {
+            boolean hasNavigationBar = false;
+            Resources rs = context.getResources();
+            int id = rs.getIdentifier("config_showNavigationBar", "bool", "android");
+            if (id > 0) {
+                hasNavigationBar = rs.getBoolean(id);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            try {
+                Class systemPropertiesClass = Class.forName("android.os.SystemProperties");
+                Method m = systemPropertiesClass.getMethod("get", String.class);
+                String navBarOverride = (String) m.invoke(systemPropertiesClass, "qemu.hw.mainkeys");
+                if ("1".equals(navBarOverride)) {
+                    hasNavigationBar = false;
+                } else if ("0".equals(navBarOverride)) {
+                    hasNavigationBar = true;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return hasNavigationBar;
         }
-        return hasNavigationBar;
-    }
 
-    private int getNavBarHeight(Context ct) {
-        boolean hasMenuKey = ViewConfiguration.get(ct).hasPermanentMenuKey();
-        int resourceId = ct.getResources().getIdentifier("navigation_bar_height", "dimen", "android");
-        if (resourceId > 0 && !hasMenuKey) {
-            return ct.getResources().getDimensionPixelSize(resourceId);
+        private int getNavBarHeight(Context ct) {
+            boolean hasMenuKey = ViewConfiguration.get(ct).hasPermanentMenuKey();
+            int resourceId = ct.getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+            if (resourceId > 0 && !hasMenuKey) {
+                return ct.getResources().getDimensionPixelSize(resourceId);
+            }
+            return 0;
         }
-        return 0;
-    }
-
+    */
     private void initMp3() {
         new Thread(new Runnable() {
             @Override
@@ -531,7 +533,7 @@ public class MainActivity extends AppCompatActivity {
         WindowManager.LayoutParams lp;
         if (window != null) {
             lp = window.getAttributes();
-            lp.dimAmount = 0.15f;
+            lp.dimAmount = 0.2f;
             window.setAttributes(lp);
         }
     }
@@ -632,6 +634,24 @@ public class MainActivity extends AppCompatActivity {
         handleBlur();
         final BottomSheetDialog bsd = new BottomSheetDialog(this);
 
+        ListView listView = new ListView(this);
+        LinearLayout layout = new LinearLayout(this);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(8, 8, 8, 8);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, mCloudVoicersEntries);
+        listView.setAdapter(arrayAdapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                voicer = mCloudVoicersValue[position];
+                hideBlur();
+                bsd.dismiss();
+                showTip(getString(R.string.operate_succeed));
+            }
+        });
+        layout.addView(listView);
+        /*
         LinearLayout layout = new LinearLayout(this);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         params.setMargins(15, 15, 15, 20);
@@ -654,7 +674,7 @@ public class MainActivity extends AppCompatActivity {
                     showTip(getString(R.string.operate_succeed));
                 }
             });
-        }
+        }*/
         bsd.setContentView(layout);
         bsd.setCancelable(true);
         bsd.setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -813,14 +833,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void showTip(final String str) {
         LogUtils.e("showTip", str);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                //Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
-                Snackbar.make(rootView, str, Snackbar.LENGTH_SHORT).show();
-            }
-        });
-
+        if (!inbg) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    //Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
+                    Snackbar.make(rootView, str, Snackbar.LENGTH_SHORT).show();
+                }
+            });
+        }
     }
 
     /**
@@ -1227,7 +1248,7 @@ public class MainActivity extends AppCompatActivity {
      * 选择提醒背单词的时间
      */
     private void selectRemindTime() {
-
+        handleBlur();
         TimePickerDialog dialog = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
             @Override
             public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
@@ -1264,14 +1285,19 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }).start();
             }
-        },
-                calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE),
-                true);
+        }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true);
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                hideBlur();
+            }
+        });
         dialog.show();
+        setScreenBgLight(dialog);
     }
 
     private void selectExitTime() {
-
+        handleBlur();
         manager = (AlarmManager) getSystemService(ALARM_SERVICE);
         // 创建PendingIntent对象和Intent,用来自动启动停止播放的IntentService
         Intent finishIntent = new Intent(getApplicationContext(), FinishVoiceIS.class);
@@ -1310,10 +1336,17 @@ public class MainActivity extends AppCompatActivity {
 
                         Toast.makeText(getApplicationContext(), "好的主人~我将在" + customTime + "自动暂停",
                                 Toast.LENGTH_SHORT).show();
-
                     }
                 }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true);
+
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                hideBlur();
+            }
+        });
         dialog.show();
+        setScreenBgLight(dialog);
     }
 
     /**
@@ -1435,6 +1468,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        inbg = false;
         //mAudioManager.registerMediaButtonEventReceiver(mComponentName);
         //registerReceiver(headSetReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
         //移动数据统计分析
@@ -1446,6 +1480,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         LogUtils.i("触发onPause");
+        inbg = true;
         //移动数据统计分析
         FlowerCollector.onPageEnd(TAG);
         FlowerCollector.onPause(MainActivity.this);
