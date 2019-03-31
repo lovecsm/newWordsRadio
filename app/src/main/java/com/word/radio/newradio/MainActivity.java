@@ -76,6 +76,7 @@ import com.word.radio.utils.NotificationUtil;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Locale;
@@ -140,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
     {
         mEngineType = SpeechConstant.TYPE_CLOUD;
-        VOICE_VOL = "85";
+        VOICE_VOL = "75";
         VOICE_TONE = "50";
         VOICE_SPEED = "50";
     }
@@ -514,9 +515,9 @@ public class MainActivity extends AppCompatActivity {
         activity.getWindow().getDecorView().setDrawingCacheEnabled(true);
         Bitmap bmp = activity.getWindow().getDecorView().getDrawingCache();
         //如果有导航栏则将截图剪切一下去掉导航栏
-        if (hasNavBar(activity)) {
+        /*if (hasNavBar(activity)) {
             bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight() - getNavBarHeight(activity));
-        }
+        }*/
         //获取原图尺寸
         originalW = bmp.getWidth();
         originalH = bmp.getHeight();
@@ -756,18 +757,27 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void initSpinner() {
+        int arraySize = 60;
+        int readSize = 35;
+        int listenSize = 25;
         // 数据源
-        final String[] array = {"part 1", "part 2", "part 3", "part 4", "part 5", "part 6", "part 7", "part 8", "part 9", "part 10", "part 11",
-                "part 12", "part 13", "part 14", "part 15", "part 16", "part 17", "part 18", "part 19", "part 20", "part 21", "part 22", "part 23",
-                "part 24", "part 25", "part 26", "part 27", "part 28", "part 29", "part 30", "part 31", "part 32", "part 33", "part 34", "part 35"};
-
+        //final String[] array = {"part 1", "part 2", "part 3", "part 4", "part 5", "part 6", "part 7", "part 8", "part 9", "part 10", "part 11",
+        //        "part 12", "part 13", "part 14", "part 15", "part 16", "part 17", "part 18", "part 19", "part 20", "part 21", "part 22", "part 23",
+        //        "part 24", "part 25", "part 26", "part 27", "part 28", "part 29", "part 30", "part 31", "part 32", "part 33", "part 34", "part 35"};
+        final ArrayList<String> array = new ArrayList<>(arraySize);
+        for (int i = 1; i <= readSize; i++) {
+            array.add("part " + i);
+        }
+        for (int i = 1; i <= listenSize; i++) {
+            array.add("listen part " + i);
+        }
         spinner = findViewById(R.id.spinner);
         // 添加选中条目的点击事件
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view,
                                        int position, long id) {
-                words = ReadFile.readAssetsFile(getApplicationContext(), array[position].replace(" ", "_"));
+                words = ReadFile.readAssetsFile(getApplicationContext(), array.get(position).replace(" ", "_"));
                 savedSpinnerPos = position;
                 m = p.matcher(words);
                 wordsHashMap.clear();
