@@ -50,8 +50,7 @@
         <service
             android:name="com.word.radio.time.TimeService"
             android:enabled="true"
-            android:exported="true"
-            tools:ignore="ExportedService" />
+            android:exported="false" />
         <service
             android:name="com.word.radio.time.SendNotificationIS"
             android:enabled="true"

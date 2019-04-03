@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.support.v4.app.NotificationCompat;
 import android.widget.RemoteViews;
@@ -103,7 +104,8 @@ public class NotificationUtil {
             notification = new Notification.Builder(context, channelID)
                     .setWhen(System.currentTimeMillis())
                     .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
-                    .setSmallIcon(R.mipmap.ic_launcher)
+                    //.setSmallIcon(R.mipmap.ic_launcher)
+                    .setSmallIcon(Icon.createWithResource(context, R.mipmap.ic_launcher))
                     .setContentText(msg)
                     .setContentTitle(title)
                     .setAutoCancel(false)
@@ -132,7 +134,8 @@ public class NotificationUtil {
             notification = new Notification.Builder(context, channelID)
                     .setWhen(System.currentTimeMillis())
                     .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher))
-                    .setSmallIcon(R.mipmap.ic_launcher)
+                    //.setSmallIcon(R.mipmap.ic_launcher)
+                    .setSmallIcon(Icon.createWithResource(context, R.mipmap.ic_launcher))
                     .setContentText(msg)
                     .setContentTitle(title)
                     .setAutoCancel(true)

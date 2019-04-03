@@ -79,6 +79,8 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -132,17 +134,14 @@ public class MainActivity extends AppCompatActivity {
     private String[] mCloudVoicersEntries;
     private String[] mCloudVoicersValue;
     // 发音人声音配置
-    private String voicer = "xiaoqi";       // 默认发音人
+    private String voicer = "xiaoqi";// 默认发音人
     final private String VOICE_VOL;  // 音量
     final private String VOICE_TONE; // 音调
     final private String VOICE_SPEED;// 语速
 
-    {
-        mEngineType = SpeechConstant.TYPE_CLOUD;
-        VOICE_VOL = "75";
-        VOICE_TONE = "50";
-        VOICE_SPEED = "50";
-    }
+    // 背景模糊
+    private Runnable refreshFadeIn;
+    private Runnable refreshFadeOut;
 
     // 线控相关
     private MediaButtonReceiver mediaButtonReceiver;
@@ -155,8 +154,51 @@ public class MainActivity extends AppCompatActivity {
     private AlarmManager manager;
     private PendingIntent pi;
 
+    // 线程池
+    ExecutorService executorService;
+
     // 后台flag
     private boolean inbg = false;
+
+    // 初始化块
+    {
+        mEngineType = SpeechConstant.TYPE_CLOUD;
+        VOICE_VOL = "85";
+        VOICE_TONE = "50";
+        VOICE_SPEED = "50";
+        // 线程池
+        executorService = Executors.newFixedThreadPool(2);
+        // 淡入
+        refreshFadeIn = new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i <= 255; i += 1) {
+                    refreshUI(i);//在UI线程刷新视图
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+        // 淡出
+        refreshFadeOut = new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 255; i >= 0; i -= 1) {
+                    refreshUI(i);//在UI线程刷新视图
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                //当淡出效果完毕后发送消息给mHandler把对话框背景设为不可见
+                mHandler.sendEmptyMessage(0);
+            }
+        };
+    }
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -168,6 +210,22 @@ public class MainActivity extends AppCompatActivity {
         initSpeech();   //初始化发音引擎
         initBroadCast();//初始化线控广播接收器
         initNotificationChannel();  // 初始化安卓8.0通知渠道
+        initRemind();   // 初始化提醒背单词的服务
+    }
+
+    private void initRemind() {
+        SharedPreferences sp = getSharedPreferences("remind_time", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+        final String defaultTime = "20:00";
+        String time = sp.getString("time", defaultTime);
+        if (time != null && time.equals(defaultTime)) {
+            editor.putString("time", defaultTime);
+            editor.apply();
+        }
+        if (time != null) {
+            startRemindService();
+            LogUtils.i("initRemind", "启动提醒服务");
+        }
     }
 
     @Override
@@ -308,14 +366,23 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    @SuppressLint("HandlerLeak")
     private void initView() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            //下面图1
+            // lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
+            // 下面图2
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            //下面图3
+            // lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
+            getWindow().setAttributes(lp);
+        }
         // 上一个和下一个的按钮
         Button previousBt, nextBt;
         TextView selectPartTv;
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        toolbar.setFitsSystemWindows(true);
+        toolbar.setFitsSystemWindows(false);
         // 自定义字体路径
         Typeface typeface = Typeface.createFromAsset(getAssets(), "font/song.ttf");
         rootView = findViewById(R.id.main_root);
@@ -342,7 +409,7 @@ public class MainActivity extends AppCompatActivity {
         //创建activity先把对话框背景图设为不可见
         dialogBg.setImageAlpha(0);
         dialogBg.setVisibility(View.GONE);
-        mHandler = new Handler() {
+        /*mHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
@@ -351,7 +418,18 @@ public class MainActivity extends AppCompatActivity {
                     System.gc();
                 }
             }
-        };
+        };*/
+        mHandler = new Handler(new Handler.Callback() {
+            @Override
+            public boolean handleMessage(Message msg) {
+                if (msg.what == 0) {
+                    dialogBg.setVisibility(View.GONE);
+                    System.gc();
+                    return true;
+                }
+                return false;
+            }
+        });
 
         // 初始化时间选择器
         calendar = Calendar.getInstance();
@@ -552,35 +630,9 @@ public class MainActivity extends AppCompatActivity {
     private void asyncRefresh(boolean in) {
         //淡出淡入效果的实现
         if (in) {    //淡入效果
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    for (int i = 0; i <= 255; i += 5) {
-                        refreshUI(i);//在UI线程刷新视图
-                        try {
-                            Thread.sleep(6);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }).start();
+            executorService.execute(refreshFadeIn);
         } else {    //淡出效果
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    for (int i = 255; i >= 0; i -= 1) {
-                        refreshUI(i);//在UI线程刷新视图
-                        try {
-                            Thread.sleep(1);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    //当淡出效果完毕后发送消息给mHandler把对话框背景设为不可见
-                    mHandler.sendEmptyMessage(0);
-                }
-            }).start();
+            executorService.execute(refreshFadeOut);
         }
     }
 
@@ -833,15 +885,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void showTip(final String str) {
         LogUtils.e("showTip", str);
-        if (!inbg) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    //Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
-                    Snackbar.make(rootView, str, Snackbar.LENGTH_SHORT).show();
+                    if (!inbg) {
+                        Snackbar.make(rootView, str, Snackbar.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
+                    }
                 }
             });
-        }
     }
 
     /**
@@ -992,6 +1045,8 @@ public class MainActivity extends AppCompatActivity {
                 if (autoRestart) {
                     targetLocation = 0;
                     buttonFunction();
+                } else {
+                    showNotification(getApplicationContext(), "播放完毕", "点击播放按钮可重播");
                 }
             }
         } else {
@@ -1158,7 +1213,8 @@ public class MainActivity extends AppCompatActivity {
             pause = false;
             playNextWord();
         } else {
-            showTip(getString(R.string.cannot_switch));
+            repeatPlay(v);
+            previous(v);
         }
     }
 
@@ -1173,7 +1229,8 @@ public class MainActivity extends AppCompatActivity {
             pause = false;
             playNextWord();
         } else {
-            showTip(getString(R.string.cannot_switch));
+            repeatPlay(v);
+            next(v);
         }
     }
 
@@ -1266,24 +1323,8 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences.Editor editor = getSharedPreferences("remind_time", Context.MODE_PRIVATE).edit();
                 editor.putString("time", time);
                 editor.apply();
-                Toast.makeText(getApplicationContext(), "将在每天的" + time + "提醒您听单词", Toast.LENGTH_SHORT).show();
-
-                // 发送广播结束TimeService
-                Intent stopTimeService = new Intent("stopTimeService");
-                sendBroadcast(stopTimeService);
-                // 启动后台服务
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Thread.sleep(1000);
-                            Intent service = new Intent(getApplication(), TimeService.class);
-                            getApplication().startService(service);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }).start();
+                showTip("将在每天的" + time + "提醒您听单词");
+                startRemindService();
             }
         }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true);
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
@@ -1296,6 +1337,24 @@ public class MainActivity extends AppCompatActivity {
         setScreenBgLight(dialog);
     }
 
+    private void startRemindService() {
+        // 发送广播结束TimeService
+        Intent stopTimeService = new Intent("stopTimeService");
+        sendBroadcast(stopTimeService);
+        // 启动后台服务
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                    Intent service = new Intent(getApplication(), TimeService.class);
+                    getApplication().startService(service);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
     private void selectExitTime() {
         handleBlur();
         manager = (AlarmManager) getSystemService(ALARM_SERVICE);
@@ -1334,8 +1393,7 @@ public class MainActivity extends AppCompatActivity {
                         // 设置一个闹钟，直到sleepTime之时唤醒手机并执行pi以启动服务FinishApplicationIS退出程序
                         manager.setExact(AlarmManager.RTC_WAKEUP, sleepTime, pi);
 
-                        Toast.makeText(getApplicationContext(), "好的主人~我将在" + customTime + "自动暂停",
-                                Toast.LENGTH_SHORT).show();
+                        showTip("好的主人~我将在" + customTime + "自动暂停");
                     }
                 }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true);
 

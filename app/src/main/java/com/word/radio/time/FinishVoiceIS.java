@@ -47,9 +47,9 @@ public class FinishVoiceIS extends IntentService {
      * parameters.
      */
     private void handleActionFinish() {
-        //System.exit(0);
-        Intent finishIntent = new Intent("ok");
-        sendBroadcast(finishIntent);
+        System.exit(0);
+        //Intent finishIntent = new Intent("ok");
+        //sendBroadcast(finishIntent);
     }
 
 }
