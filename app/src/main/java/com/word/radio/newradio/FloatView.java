@@ -100,10 +100,10 @@ public class FloatView extends View {
     public void show() {
         if (mContentView != null) {
             //wmParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 wmParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
             } else {
-                wmParams.type =  WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+                wmParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
             }
             wmParams.format = PixelFormat.RGBA_8888;
             wmParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;

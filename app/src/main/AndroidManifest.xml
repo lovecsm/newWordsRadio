@@ -21,14 +21,9 @@
         <activity
             android:name=".MainActivity"
             android:icon="@mipmap/ic_launcher"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:roundIcon="@mipmap/ic_launcher_round"
             android:screenOrientation="portrait">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
 
         <receiver
@@ -61,6 +56,19 @@
             android:enabled="true"
             android:exported="false"
             tools:ignore="ExportedService" />
+
+        <activity
+            android:name=".SplashActivity"
+            android:theme="@style/AppSplash"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

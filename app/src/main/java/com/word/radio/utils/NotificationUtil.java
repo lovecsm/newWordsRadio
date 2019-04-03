@@ -62,9 +62,9 @@ public class NotificationUtil {
     /**
      * 针对API版本较低的创建默认通知方法
      *
-     * @param context     上下文
-     * @param title       通知标题
-     * @param msg         通知消息
+     * @param context 上下文
+     * @param title   通知标题
+     * @param msg     通知消息
      */
     public static void createNotification(Context context, String title, String msg) {
         // 对API等级限制，低于安卓O的无法使用该方法
@@ -90,11 +90,12 @@ public class NotificationUtil {
 
     /**
      * 针对API大于安卓O的创建自定义通知方法
-     * @param context 上下文
-     * @param title 通知标题
-     * @param msg 通知消息
+     *
+     * @param context     上下文
+     * @param title       通知标题
+     * @param msg         通知消息
      * @param remoteViews 通知栏的remoteView
-     * @param channelID 通知渠道ID
+     * @param channelID   通知渠道ID
      */
     public static void getNotification(Context context, String title, String msg, RemoteViews remoteViews, String channelID) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -121,10 +122,10 @@ public class NotificationUtil {
     /**
      * 针对API大于安卓O的创建默认通知方法
      *
-     * @param context     上下文
-     * @param title       通知标题
-     * @param msg         通知消息
-     * @param channelID   通知渠道ID
+     * @param context   上下文
+     * @param title     通知标题
+     * @param msg       通知消息
+     * @param channelID 通知渠道ID
      */
     public static void createNotification(Context context, String title, String msg, String channelID) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

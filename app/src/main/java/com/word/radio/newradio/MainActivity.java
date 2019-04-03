@@ -18,7 +18,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.Typeface;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -378,19 +377,19 @@ public class MainActivity extends AppCompatActivity {
             getWindow().setAttributes(lp);
         }
         // 上一个和下一个的按钮
-        Button previousBt, nextBt;
-        TextView selectPartTv;
+        /*Button previousBt, nextBt;
+        TextView selectPartTv;*/
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setFitsSystemWindows(false);
         // 自定义字体路径
-        Typeface typeface = Typeface.createFromAsset(getAssets(), "font/song.ttf");
+        //Typeface typeface = Typeface.createFromAsset(getAssets(), "font/song.ttf");
         rootView = findViewById(R.id.main_root);
         currentWord = findViewById(R.id.current_word);
         currentChinese = findViewById(R.id.current_chinese);
-        previousBt = findViewById(R.id.previous);
+        /*previousBt = findViewById(R.id.previous);
         nextBt = findViewById(R.id.next);
-        selectPartTv = findViewById(R.id.select_part);
+        selectPartTv = findViewById(R.id.select_part);*/
         allWordTextView = findViewById(R.id.allWords);
         mProgressBarHorizontal = findViewById(R.id.progressBarHorizontal);
         speechButton = findViewById(R.id.speech);
@@ -398,13 +397,14 @@ public class MainActivity extends AppCompatActivity {
         mCloudVoicersValue = getResources().getStringArray(R.array.voicer_cloud_values);
         dialogBg = findViewById(R.id.iv_dialog_bg);
         // 把所有的字体设为自定义字体
+        /*
         currentWord.setTypeface(typeface);
         currentChinese.setTypeface(typeface);
         speechButton.setTypeface(typeface);
         allWordTextView.setTypeface(typeface);
         selectPartTv.setTypeface(typeface);
         previousBt.setTypeface(typeface);
-        nextBt.setTypeface(typeface);
+        nextBt.setTypeface(typeface);*/
 
         //创建activity先把对话框背景图设为不可见
         dialogBg.setImageAlpha(0);
@@ -552,6 +552,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 加载框
+     *
      * @param id 作为标题的string资源的id
      */
     private void buildProgressDialog(final int id) {
@@ -885,16 +886,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void showTip(final String str) {
         LogUtils.e("showTip", str);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (!inbg) {
-                        Snackbar.make(rootView, str, Snackbar.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
-                    }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (!inbg) {
+                    Snackbar.make(rootView, str, Snackbar.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
                 }
-            });
+            }
+        });
     }
 
     /**
@@ -1355,6 +1356,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
     }
+
     private void selectExitTime() {
         handleBlur();
         manager = (AlarmManager) getSystemService(ALARM_SERVICE);

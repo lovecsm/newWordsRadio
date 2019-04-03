@@ -12,6 +12,10 @@
         <item name="actionOverflowMenuStyle">@style/OverflowMenuStyle</item>
     </style>
 
+    <style name="AppSplash" parent="AppTheme">
+        <item name="android:windowBackground">@drawable/splash_img</item>
+    </style>
+
     <!--右上角弹出式菜单不覆盖toolbar图标-->
     <style name="OverflowMenuStyle" parent="Widget.AppCompat.PopupMenu.Overflow">
                
