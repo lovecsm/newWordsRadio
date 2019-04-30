@@ -8,6 +8,10 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:name="com.word.radio.ifly.SpeechApp"
         android:allowBackup="false"
@@ -41,6 +45,13 @@
         <meta-data
             android:name="IFLYTEK_CHANNEL"
             android:value="Android_Demo" />
+
+        <meta-data
+            android:name="APP_ID"
+            android:value="b5b9109475bdbb2f966fb938c7f78dab" />
+        <meta-data
+            android:name="APP_PID"
+            android:value="default" />
 
         <service
             android:name="com.word.radio.time.TimeService"

@@ -28,3 +28,7 @@
 
 -keep class com.android.support.** {*; }
 -dontwarn com.android.support.**
+
+-keep public class cn.waps.** {*;}
+-keep public interface cn.waps.** {*;}
+-dontwarn cn.waps.**

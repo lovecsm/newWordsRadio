@@ -83,6 +83,9 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import cn.waps.AppConnect;
+import cn.waps.AppListener;
+
 public class MainActivity extends AppCompatActivity {
 
     // UI 相关
@@ -210,6 +213,20 @@ public class MainActivity extends AppCompatActivity {
         initBroadCast();//初始化线控广播接收器
         initNotificationChannel();  // 初始化安卓8.0通知渠道
         initRemind();   // 初始化提醒背单词的服务
+        initAds();
+    }
+
+    private void initAds() {
+        LinearLayout adlayout = findViewById(R.id.AdLinearLayout);
+
+        AppConnect.getInstance(this).setBannerAdNoDataListener(new AppListener() {
+            @Override
+            public void onBannerNoData() {
+                LogUtils.e("ads", "Banner广告无数据");
+            }
+        });
+        LogUtils.d("ads", "Banner广告");
+        AppConnect.getInstance(this).showBannerAd(this, adlayout);
     }
 
     private void initRemind() {
@@ -1588,7 +1605,7 @@ public class MainActivity extends AppCompatActivity {
             // 退出时释放连接
             mTts.destroy();
         }
-
+        AppConnect.getInstance(this).close();
         super.onDestroy();
         System.exit(0);
     }
