@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
-import android.graphics.Typeface;
 import android.os.Build;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -40,7 +39,7 @@ public class FloatView extends View {
 
     @SuppressLint("ClickableViewAccessibility")
     public void setLayout(int layoutId) {
-        Typeface typeface = Typeface.createFromAsset(mContext.getAssets(), "font/song.ttf");
+        //Typeface typeface = Typeface.createFromAsset(mContext.getAssets(), "font/song.ttf");
         mContentView = (LinearLayout) LayoutInflater.from(mContext).inflate(layoutId, null);
         textView = new TextView(mContentView.getContext());
 
@@ -56,7 +55,7 @@ public class FloatView extends View {
         textView.setTextColor(Color.BLACK);
         textView.setText(String.format("%s  %s", mContext.getString(R.string.hello),
                 mContext.getString(R.string.world)));
-        textView.setTypeface(typeface);
+        //textView.setTypeface(typeface);
         mContentView.addView(textView, reLayoutParams);
 
         mContentView.setOnTouchListener(new OnTouchListener() {

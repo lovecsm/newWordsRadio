@@ -808,10 +808,21 @@ public class MainActivity extends AppCompatActivity {
         public void onCompleted(SpeechError error) {
             if (error == null) {
                 // 播放完成监听
-                //showTip("缓存完成");
-                if (!pause)
+                if (!pause) {
                     //playChinese();
-                    playNextWord();
+                    executorService.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                LogUtils.d("tts_complete", "tts播放完成");
+                                Thread.sleep(1600);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            playNextWord();
+                        }
+                    });
+                }
             } else {
                 showTip(error.getPlainDescription(true));
             }
@@ -1015,51 +1026,51 @@ public class MainActivity extends AppCompatActivity {
      * 播放下一个单词
      */
     private void playNextWord() {
-        if (pause) {
-            return;
-        }
-        if (!isPlaying) {
-            isPlaying = true;
-            speechButton.setText(R.string.pause);
-        }
-        if (!pause)
-            speechButton.setText(R.string.pause);
-        updateProgress();
-        if (!reversed) {
-            if (targetLocation >= 0 && targetLocation < allWordNum) {
-                content = getTargetWord(targetLocation++);
-                String wordName = content[0];
-                //LogUtils.e("content", wordName);
-                if (wordName.equals("null")) {
-                    showTip("获取单词出错");
-                    speechButton.setText(R.string.begin);
-                } else {
-                    //LogUtils.e("restart", pause + ":pause");
-                    if (!pause) play(wordName);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (pause) {
+                    return;
                 }
-            } else {
-                LogUtils.i("targetLocation", targetLocation + "");
-                showTip("播放完毕");
-                isPlaying = false;
-                pause = true;
-                speechButton.setText(R.string.restart);
-                if (autoRestart) {
-                    targetLocation = 0;
-                    buttonFunction();
-                } else {
-                    showNotification(getApplicationContext(), "播放完毕", "点击播放按钮可重播");
+                if (!isPlaying) {
+                    isPlaying = true;
+                    speechButton.setText(R.string.pause);
                 }
-            }
-        } else {
-            if (targetLocation >= 0 && targetLocation <= allWordNum) {
-                content = getTargetWord(targetLocation--);
-                //LogUtils.e("content", content[0] + "\n" + content[1]);
-                String wordName = content[0];
-                if (!pause) play(wordName);
-            } else {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
+                if (!pause)
+                    speechButton.setText(R.string.pause);
+                updateProgress();
+                if (!reversed) {
+                    if (targetLocation >= 0 && targetLocation < allWordNum) {
+                        content = getTargetWord(targetLocation++);
+                        String wordName = content[0];
+                        //LogUtils.e("content", wordName);
+                        if (wordName.equals("null")) {
+                            showTip("获取单词出错");
+                            speechButton.setText(R.string.begin);
+                        } else {
+                            //LogUtils.e("restart", pause + ":pause");
+                            if (!pause) play(wordName);
+                        }
+                    } else {
+                        LogUtils.i("targetLocation", targetLocation + "");
+                        showTip("播放完毕");
+                        isPlaying = false;
+                        pause = true;
+                        speechButton.setText(R.string.restart);
+                        if (autoRestart) {
+                            targetLocation = 0;
+                            buttonFunction();
+                        } else {
+                            showNotification(getApplicationContext(), "播放完毕", "点击播放按钮可重播");
+                        }
+                    }
+                } else {
+                    if (targetLocation >= 0 && targetLocation <= allWordNum) {
+                        content = getTargetWord(targetLocation--);
+                        //LogUtils.e("content", content[0] + "\n" + content[1]);
+                        String wordName = content[0];
+                        if (!pause) play(wordName);
+                    } else {
                         showTip("播放完毕");
                         isPlaying = false;
                         pause = true;
@@ -1069,9 +1080,10 @@ public class MainActivity extends AppCompatActivity {
                             buttonFunction();
                         }
                     }
-                });
+                }
             }
-        }
+        });
+
     }
 
     private void updateProgress() {
@@ -1098,58 +1110,62 @@ public class MainActivity extends AppCompatActivity {
      *
      * @param word 单词
      */
-    private void play(String word) {
-        if (mTts.isSpeaking()) {
-            mTts.stopSpeaking();
-        }
-        if (!repeat)
-            saveData();
-        try {
-            if (mediaPlayer == null)
-                mediaPlayer = new MediaPlayer();
-            //LogUtils.e("word", word);
-            //朗读相关
-            /*File tempFile = new File(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
-            FileInputStream fis = new FileInputStream(tempFile);
-            mediaPlayer.setDataSource(fis.getFD());*/
-            mediaPlayer.setDataSource(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
-            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mediaPlayer.prepare();//同步的准备方法。
-            //mediaPlayer.prepareAsync();//异步的准备
-            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                @Override
-                public void onPrepared(MediaPlayer mp) {
-                    if (pause) {
-                        mediaPlayer.reset();
-                        count = 0;
-                    } else {
-                        mediaPlayer.start();
-                        count++;
-                    }
+    private void play(final String word) {
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                if (mTts.isSpeaking()) {
+                    mTts.stopSpeaking();
                 }
-            });
-            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    if (count < times) {
-                        mediaPlayer.start();
-                        count++;
-                    } else {
-                        count = 0;
-                        mediaPlayer.reset();
-                        if (needPlayChinese && !pause) {
-                            playByTts();
-                        } else if (!pause) {
-                            playNextWord();
+                if (!repeat)
+                    saveData();
+                try {
+                    if (mediaPlayer == null)
+                        mediaPlayer = new MediaPlayer();
+                    //LogUtils.e("word", word);
+                    //朗读相关
+                    /*File tempFile = new File(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
+                    FileInputStream fis = new FileInputStream(tempFile);
+                    mediaPlayer.setDataSource(fis.getFD());*/
+                    mediaPlayer.setDataSource(getExternalCacheDir() + "/wordAudios/" + word + ".mp3");
+                    mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                    mediaPlayer.prepare();//同步的准备方法。
+                    //mediaPlayer.prepareAsync();//异步的准备
+                    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                        @Override
+                        public void onPrepared(MediaPlayer mp) {
+                            if (pause) {
+                                mediaPlayer.reset();
+                                count = 0;
+                            } else {
+                                mediaPlayer.start();
+                                count++;
+                            }
                         }
-                    }
+                    });
+                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(MediaPlayer mp) {
+                            if (count < times) {
+                                mediaPlayer.start();
+                                count++;
+                            } else {
+                                count = 0;
+                                mediaPlayer.reset();
+                                if (needPlayChinese && !pause) {
+                                    playByTts();
+                                } else if (!pause) {
+                                    playNextWord();
+                                }
+                            }
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    //LogUtils.e("player", "播放失败:" + word);
                 }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-            //LogUtils.e("player", "播放失败:" + word);
-        }
-
+            }
+        });
     }
 
 
